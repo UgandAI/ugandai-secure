@@ -1,4 +1,4 @@
-package com.donatienthorez.chatgptbot.ui
+package com.ugandai.chatgptbot.ui
 
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Shapes

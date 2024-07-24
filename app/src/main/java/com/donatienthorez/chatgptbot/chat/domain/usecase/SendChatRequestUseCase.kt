@@ -1,9 +1,9 @@
-package com.donatienthorez.chatgptbot.chat.domain.usecase
+package com.ugandai.chatgptbot.chat.domain.usecase
 
-import com.donatienthorez.chatgptbot.chat.data.ConversationRepository
-import com.donatienthorez.chatgptbot.chat.data.Message
-import com.donatienthorez.chatgptbot.chat.data.MessageStatus
-import com.donatienthorez.chatgptbot.chat.data.api.OpenAIRepository
+import com.ugandai.chatgptbot.chat.data.ConversationRepository
+import com.ugandai.chatgptbot.chat.data.Message
+import com.ugandai.chatgptbot.chat.data.MessageStatus
+import com.ugandai.chatgptbot.chat.data.api.OpenAIRepository
 import kotlinx.coroutines.delay
 
 class SendChatRequestUseCase(
@@ -12,7 +12,8 @@ class SendChatRequestUseCase(
 ) {
 
     suspend operator fun invoke(
-        prompt: String
+        prompt: String,
+        vectorStoreId: String // New parameter for vector store ID
     ) {
         val message = Message(
             text = prompt,
@@ -22,7 +23,7 @@ class SendChatRequestUseCase(
         val conversation = conversationRepository.addMessage(message)
 
         try {
-            val reply = openAIRepository.sendChatRequest(conversation)
+            val reply = openAIRepository.sendChatRequest(conversation, vectorStoreId) // Pass vector store ID
             conversationRepository.setMessageStatusToSent(message.id)
             conversationRepository.addMessage(reply)
         } catch (exception: Exception) {

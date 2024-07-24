@@ -1,4 +1,4 @@
-package com.donatienthorez.chatgptbot.utils
+package com.ugandai.chatgptbot.utils
 
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height

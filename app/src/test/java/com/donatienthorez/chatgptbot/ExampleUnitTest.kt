@@ -1,4 +1,4 @@
-package com.donatienthorez.chatgptbot
+package com.ugandai.chatgptbot
 
 import org.junit.Test
 

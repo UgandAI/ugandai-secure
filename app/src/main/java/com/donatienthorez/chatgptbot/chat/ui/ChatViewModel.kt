@@ -1,15 +1,15 @@
-package com.donatienthorez.chatgptbot.chat.ui
+package com.ugandai.chatgptbot.chat.ui
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.donatienthorez.chatgptbot.chat.data.Conversation
-import com.donatienthorez.chatgptbot.chat.data.Message
-import com.donatienthorez.chatgptbot.chat.data.MessageStatus
-import com.donatienthorez.chatgptbot.chat.domain.usecase.ObserveMessagesUseCase
-import com.donatienthorez.chatgptbot.chat.domain.usecase.ResendMessageUseCase
-import com.donatienthorez.chatgptbot.chat.domain.usecase.SendChatRequestUseCase
+import com.ugandai.chatgptbot.chat.data.Conversation
+import com.ugandai.chatgptbot.chat.data.Message
+import com.ugandai.chatgptbot.chat.data.MessageStatus
+import com.ugandai.chatgptbot.chat.domain.usecase.ObserveMessagesUseCase
+import com.ugandai.chatgptbot.chat.domain.usecase.ResendMessageUseCase
+import com.ugandai.chatgptbot.chat.domain.usecase.SendChatRequestUseCase
 import kotlinx.coroutines.launch
 
 class ChatViewModel(
@@ -40,19 +40,36 @@ class ChatViewModel(
         }
     }
 
-    fun sendMessage(prompt: String) {
+    fun sendMessage(prompt: String, vectorStoreId: String) {
         viewModelScope.launch {
-            sendChatRequestUseCase(
-                prompt
+            // Create a user message from the prompt
+            val userMessage = Message(
+                text = prompt,
+                isFromUser = true, // Indicates this message is from the user
+                messageStatus = MessageStatus.Sending // Initial status might be Sending
             )
+
+            // Create a system message with vector store instructions
+            val instructions = "Please use the vector store with ID $vectorStoreId to answer any questions related to the content of the files."
+            val systemMessage = Message(
+                text = instructions,
+                isFromUser = false, // Indicates this message is from the system or assistant
+                messageStatus = MessageStatus.Sending // Initial status might be Sending
+            )
+
+            // Create a Conversation object with the list of messages
+            val conversation = Conversation(
+                listOf(userMessage, systemMessage)
+            )
+
+            // Call the sendChatRequestUseCase with the initialized conversation and vectorStoreId
+            sendChatRequestUseCase.invoke(prompt, vectorStoreId)
         }
     }
 
     fun resendMessage(message: Message) {
         viewModelScope.launch {
-            resendChatRequestUseCase(
-                message
-            )
+            resendChatRequestUseCase.invoke(message, "vs_KAR65HLoh4s5u03A92nd4Cwc")
         }
     }
 }

@@ -1,6 +1,6 @@
-package com.donatienthorez.chatgptbot.chat.domain.usecase
+package com.ugandai.chatgptbot.chat.domain.usecase
 
-import com.donatienthorez.chatgptbot.chat.data.ConversationRepository
+import com.ugandai.chatgptbot.chat.data.ConversationRepository
 
 class ObserveMessagesUseCase(
     private val conversationRepository: ConversationRepository

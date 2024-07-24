@@ -1,9 +1,9 @@
-package com.donatienthorez.chatgptbot.chat.domain.usecase
+package com.ugandai.chatgptbot.chat.domain.usecase
 
-import com.donatienthorez.chatgptbot.chat.data.ConversationRepository
-import com.donatienthorez.chatgptbot.chat.data.Message
-import com.donatienthorez.chatgptbot.chat.data.MessageStatus
-import com.donatienthorez.chatgptbot.chat.data.api.OpenAIRepository
+import com.ugandai.chatgptbot.chat.data.ConversationRepository
+import com.ugandai.chatgptbot.chat.data.Message
+import com.ugandai.chatgptbot.chat.data.MessageStatus
+import com.ugandai.chatgptbot.chat.data.api.OpenAIRepository
 
 class ResendMessageUseCase(
     private val openAIRepository: OpenAIRepository,
@@ -11,12 +11,13 @@ class ResendMessageUseCase(
 ) {
 
     suspend operator fun invoke(
-        message: Message
+        message: Message,
+        vectorStoreId: String
     ) {
         val conversation = conversationRepository.resendMessage(message)
 
         try {
-            val reply = openAIRepository.sendChatRequest(conversation)
+            val reply = openAIRepository.sendChatRequest(conversation, vectorStoreId)
             conversationRepository.setMessageStatusToSent(message.id)
             conversationRepository.addMessage(reply)
         } catch (exception: Exception) {

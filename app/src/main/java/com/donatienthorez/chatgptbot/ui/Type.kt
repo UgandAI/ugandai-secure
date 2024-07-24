@@ -1,4 +1,4 @@
-package com.donatienthorez.chatgptbot.ui
+package com.ugandai.chatgptbot.ui
 
 import androidx.compose.material3.Typography
 import androidx.compose.ui.text.TextStyle

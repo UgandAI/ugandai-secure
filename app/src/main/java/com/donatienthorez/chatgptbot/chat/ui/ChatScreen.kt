@@ -1,4 +1,4 @@
-package com.donatienthorez.chatgptbot.chat.ui
+package com.ugandai.chatgptbot.chat.ui
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -25,11 +25,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LiveData
 import com.donatienthorez.chatgptbot.R
-import com.donatienthorez.chatgptbot.chat.data.Conversation
-import com.donatienthorez.chatgptbot.chat.data.Message
-import com.donatienthorez.chatgptbot.chat.data.MessageStatus
-import com.donatienthorez.chatgptbot.utils.HorizontalSpacer
-import com.donatienthorez.chatgptbot.utils.VerticalSpacer
+import com.ugandai.chatgptbot.chat.data.Conversation
+import com.ugandai.chatgptbot.chat.data.Message
+import com.ugandai.chatgptbot.chat.data.MessageStatus
+import com.ugandai.chatgptbot.utils.HorizontalSpacer
+import com.ugandai.chatgptbot.utils.VerticalSpacer
 import kotlinx.coroutines.launch
 
 data class ChatScreenUiHandlers(

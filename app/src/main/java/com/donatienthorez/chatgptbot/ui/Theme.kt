@@ -1,4 +1,4 @@
-package com.donatienthorez.chatgptbot.ui
+package com.ugandai.chatgptbot.ui
 
 import android.os.Build
 import androidx.compose.material3.*

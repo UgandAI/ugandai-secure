@@ -1,11 +1,11 @@
-package com.donatienthorez.chatgptbot.di
+package com.ugandai.chatgptbot.di
 
-import com.donatienthorez.chatgptbot.chat.data.ConversationRepository
-import com.donatienthorez.chatgptbot.chat.data.api.OpenAIRepository
-import com.donatienthorez.chatgptbot.chat.domain.usecase.ObserveMessagesUseCase
-import com.donatienthorez.chatgptbot.chat.domain.usecase.ResendMessageUseCase
-import com.donatienthorez.chatgptbot.chat.domain.usecase.SendChatRequestUseCase
-import com.donatienthorez.chatgptbot.chat.ui.ChatViewModel
+import com.ugandai.chatgptbot.chat.data.ConversationRepository
+import com.ugandai.chatgptbot.chat.data.api.OpenAIRepository
+import com.ugandai.chatgptbot.chat.domain.usecase.ObserveMessagesUseCase
+import com.ugandai.chatgptbot.chat.domain.usecase.ResendMessageUseCase
+import com.ugandai.chatgptbot.chat.domain.usecase.SendChatRequestUseCase
+import com.ugandai.chatgptbot.chat.ui.ChatViewModel
 import org.koin.dsl.module
 import org.koin.androidx.viewmodel.dsl.viewModel
 

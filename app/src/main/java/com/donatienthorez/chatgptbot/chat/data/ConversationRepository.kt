@@ -1,4 +1,4 @@
-package com.donatienthorez.chatgptbot.chat.data
+package com.ugandai.chatgptbot.chat.data
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
