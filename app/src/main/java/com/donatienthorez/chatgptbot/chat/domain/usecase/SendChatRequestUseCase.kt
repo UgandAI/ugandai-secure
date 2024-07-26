@@ -4,7 +4,6 @@ import com.ugandai.chatgptbot.chat.data.ConversationRepository
 import com.ugandai.chatgptbot.chat.data.Message
 import com.ugandai.chatgptbot.chat.data.MessageStatus
 import com.ugandai.chatgptbot.chat.data.api.OpenAIRepository
-import kotlinx.coroutines.delay
 
 class SendChatRequestUseCase(
     private val openAIRepository: OpenAIRepository,

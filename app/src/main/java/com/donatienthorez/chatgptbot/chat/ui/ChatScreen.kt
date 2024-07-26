@@ -24,7 +24,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LiveData
-import com.donatienthorez.chatgptbot.R
+import com.ugandai.chatgptbot.R
 import com.ugandai.chatgptbot.chat.data.Conversation
 import com.ugandai.chatgptbot.chat.data.Message
 import com.ugandai.chatgptbot.chat.data.MessageStatus

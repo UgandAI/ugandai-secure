@@ -7,7 +7,7 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AppCompatActivity;
 
-import com.donatienthorez.chatgptbot.databinding.ActivitySignupBinding;
+import com.ugandai.chatgptbot.databinding.ActivitySignupBinding;
 
 public class SignupActivity extends AppCompatActivity {
 

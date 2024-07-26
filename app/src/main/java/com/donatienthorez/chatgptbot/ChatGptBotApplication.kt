@@ -1,8 +1,8 @@
-package com.donatienthorez.chatgptbot
+package com.ugandai.chatgptbot
 
 import android.app.Application
 import com.ugandai.chatgptbot.di.chatModule
-import com.donatienthorez.chatgptbot.di.networkModule
+import com.ugandai.chatgptbot.di.networkModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin

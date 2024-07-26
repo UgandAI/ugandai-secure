@@ -2,7 +2,6 @@ package com.ugandai.chatgptbot.chat.domain.usecase
 
 import com.ugandai.chatgptbot.chat.data.ConversationRepository
 import com.ugandai.chatgptbot.chat.data.Message
-import com.ugandai.chatgptbot.chat.data.MessageStatus
 import com.ugandai.chatgptbot.chat.data.api.OpenAIRepository
 
 class ResendMessageUseCase(

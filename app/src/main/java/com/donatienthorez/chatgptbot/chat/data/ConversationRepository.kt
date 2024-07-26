@@ -8,7 +8,7 @@ class ConversationRepository {
 
     private var messagesList = mutableListOf(
         Message(
-            text = "Hi, how can I help?",
+            text = "Welcome farmer, how can I help?",
             isFromUser = false,
             messageStatus = MessageStatus.Sent
         )
