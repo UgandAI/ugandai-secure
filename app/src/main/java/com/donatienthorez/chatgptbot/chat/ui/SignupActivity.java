@@ -4,6 +4,14 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
+import java.io.DataOutputStream;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.nio.charset.StandardCharsets;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -13,6 +21,66 @@ public class SignupActivity extends AppCompatActivity {
 
     ActivitySignupBinding binding;
     DatabaseHelper databaseHelper;
+
+    // Simulate an asynchronous network operation
+    public static CompletableFuture<String> performNetworkOperationUserRegisterAsync(String userName, String password) {
+        return CompletableFuture.supplyAsync(() -> {
+            // Perform network operation here
+            return userRegister(userName, password);
+        });
+    }
+
+    private static String userRegister(String userName, String password) {
+        //TODO: Need to Return "Already Exists" if user already exists as well.
+        String userCreationSuccess = "Failed";
+        try {
+            // Step 1: Create a new user by sending a POST request to the /users/ endpoint
+            URL userUrl = new URL("http://10.0.2.2:8000/users/register");
+            HttpURLConnection conUser = (HttpURLConnection) userUrl.openConnection();
+
+            conUser.setRequestMethod("POST");
+            conUser.setRequestProperty("Content-Type", "application/json; utf-8");
+            conUser.setRequestProperty("Accept", "application/json");
+            conUser.setDoOutput(true);
+
+            String jsonUserInputString = String.format("{\"username\": \"%s\", \"password\": \"%s\"}", userName, password);
+
+            try (DataOutputStream out = new DataOutputStream(conUser.getOutputStream())) {
+                out.writeBytes(jsonUserInputString);
+                out.flush();
+            }
+
+            int userStatus = conUser.getResponseCode();
+            System.out.println("User Creation Response Code: " + userStatus);
+
+            BufferedReader inUser;
+            if (userStatus >= 200 && userStatus < 300) {
+                inUser = new BufferedReader(new InputStreamReader(conUser.getInputStream(), StandardCharsets.UTF_8));
+                userCreationSuccess = "Success";
+            } else {
+                inUser = new BufferedReader(new InputStreamReader(conUser.getErrorStream(), StandardCharsets.UTF_8));
+            }
+
+            String inputLine;
+            StringBuilder userContent = new StringBuilder();
+            while ((inputLine = inUser.readLine()) != null) {
+                userContent.append(inputLine);
+            }
+
+            inUser.close();
+            conUser.disconnect();
+
+            if (!userCreationSuccess.equals("Success")) {
+                userCreationSuccess = userContent.toString();
+            }
+            System.out.println("User Creation Response: " + userContent.toString());
+
+        } catch (Exception e) {
+            //TODO: Set userCreationSuccess to exception string
+            e.printStackTrace();
+        }
+        return userCreationSuccess;
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -29,26 +97,29 @@ public class SignupActivity extends AppCompatActivity {
                 String password = binding.signupPassword.getText().toString();
                 String confirmPassword = binding.signupConfirm.getText().toString();
 
-                if(email.equals("")||password.equals("")||confirmPassword.equals(""))
+                if(email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty())
                     Toast.makeText(SignupActivity.this, "All fields are mandatory", Toast.LENGTH_SHORT).show();
                 else{
                     if(password.equals(confirmPassword)){
-                        Boolean checkUserEmail = databaseHelper.checkEmail(email);
-
-                        if(checkUserEmail == false){
-                            Boolean insert = databaseHelper.insertData(email, password);
-
-                            if(insert == true){
+                        // make the async network operation
+                        CompletableFuture<String> future = performNetworkOperationUserRegisterAsync(email, password);
+                        future.thenAccept(registerStatus -> {
+                            // This block is executed after the network operation is complete
+                            System.out.println("Result: " + registerStatus);
+                            if(registerStatus.equals("Success") ){
                                 Toast.makeText(SignupActivity.this, "Signup Successfully!", Toast.LENGTH_SHORT).show();
                                 Intent intent = new Intent(getApplicationContext(),LoginActivity.class);
                                 startActivity(intent);
-                            }else{
+                            }else if(registerStatus.contains("Username which is already in use")){
+                                Toast.makeText(SignupActivity.this, "User already exists! Please login", Toast.LENGTH_SHORT).show();
+                            } else{
                                 Toast.makeText(SignupActivity.this, "Signup Failed!", Toast.LENGTH_SHORT).show();
                             }
-                        }
-                        else{
-                            Toast.makeText(SignupActivity.this, "User already exists! Please login", Toast.LENGTH_SHORT).show();
-                        }
+                        }).exceptionally(ex -> {
+                            // This block is executed if an exception occurs
+                            System.err.println("Network operation failed: " + ex.getMessage());
+                            return null;
+                        });
                     }else{
                         Toast.makeText(SignupActivity.this, "Invalid Password!", Toast.LENGTH_SHORT).show();
                     }
