@@ -15,6 +15,10 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
+import androidx.security.crypto.EncryptedSharedPreferences;
+import androidx.security.crypto.MasterKeys;
+import android.content.Context;
+import android.content.SharedPreferences;
 
 
 public class LoginActivity extends AppCompatActivity {
@@ -22,10 +26,10 @@ public class LoginActivity extends AppCompatActivity {
     ActivityLoginBinding binding;
     DatabaseHelper databaseHelper;
 
-    public static CompletableFuture<String> performNetworkOperationUserLoginAsync(String userName, String password) {
+    public CompletableFuture<String> performNetworkOperationUserLoginAsync(String userName, String password) {
         return CompletableFuture.supplyAsync(() -> {
             // Perform network operation here
-            return userLogin(userName, password);
+            return userLogin(userName, password, LoginActivity.this);
         });
     }
 
@@ -36,8 +40,11 @@ public class LoginActivity extends AppCompatActivity {
         return tokenPart.split(":")[1].replaceAll("\"", "");
     }
 
-    private static String userLogin(String userName, String password){
-        String succesfulLogin = "failed";
+    private static final String PREFERENCES_FILE = "secure_prefs";
+    private static final String TOKEN_KEY = "user_token";
+
+    public String userLogin(String userName, String password, Context context) {
+        String successfulLogin = "failed";
         try {
             String inputLine;
 
@@ -62,7 +69,7 @@ public class LoginActivity extends AppCompatActivity {
             BufferedReader inToken;
             if (tokenStatus >= 200 && tokenStatus < 300) {
                 inToken = new BufferedReader(new InputStreamReader(conToken.getInputStream(), StandardCharsets.UTF_8));
-                succesfulLogin = "Success";
+                successfulLogin = "Success";
             } else {
                 inToken = new BufferedReader(new InputStreamReader(conToken.getErrorStream(), StandardCharsets.UTF_8));
             }
@@ -77,22 +84,60 @@ public class LoginActivity extends AppCompatActivity {
 
             System.out.println("Token Generation Response: " + tokenContent.toString());
 
-            if (succesfulLogin.equals("Success")) {
+            if (successfulLogin.equals("Success")) {
                 // Extract the token from the response
                 String token = extractTokenFromResponse(tokenContent.toString());
-            }
-            else {
-                succesfulLogin = tokenContent.toString();
-            }
-        }
 
-        catch (Exception e) {
+                // Save the token securely
+                saveTokenToEncryptedPreferences(context, token);
+
+                //                token = getTokenFromEncryptedPreferences(context);
+                //                System.out.println(token);
+            } else {
+                successfulLogin = tokenContent.toString();
+            }
+        } catch (Exception e) {
             e.printStackTrace();
         }
 
-        return succesfulLogin;
+        return successfulLogin;
     }
 
+    private String getTokenFromEncryptedPreferences(Context context) throws Exception {
+        // Get the master key for encryption
+        String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
+
+        // Create (or retrieve) EncryptedSharedPreferences object
+        SharedPreferences sharedPreferences = EncryptedSharedPreferences.create(
+                "secure_prefs",
+                masterKeyAlias,
+                context,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        );
+
+        // Retrieve the token securely
+        return sharedPreferences.getString("user_token", null);
+    }
+
+    private static void saveTokenToEncryptedPreferences(Context context, String token) throws Exception {
+        // Get the master key for encryption
+        String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
+
+        // Create (or retrieve) EncryptedSharedPreferences object
+        SharedPreferences sharedPreferences = EncryptedSharedPreferences.create(
+                PREFERENCES_FILE,
+                masterKeyAlias,
+                context,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        );
+
+        // Save the token securely
+        SharedPreferences.Editor editor = sharedPreferences.edit();
+        editor.putString(TOKEN_KEY, token);
+        editor.apply();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
