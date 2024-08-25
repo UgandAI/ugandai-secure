@@ -124,6 +124,7 @@ public class SignupActivity extends AppCompatActivity {
                             return null;
                         });
                     } else {
+                        //TODO this needs to be within the runOnUiThread.
                         Toast.makeText(SignupActivity.this, "Passwords do not match!", Toast.LENGTH_SHORT).show();
                     }
                 }
