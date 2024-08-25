@@ -11,7 +11,6 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -97,31 +96,35 @@ public class SignupActivity extends AppCompatActivity {
                 String password = binding.signupPassword.getText().toString();
                 String confirmPassword = binding.signupConfirm.getText().toString();
 
-                if(email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty())
+                if (email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
                     Toast.makeText(SignupActivity.this, "All fields are mandatory", Toast.LENGTH_SHORT).show();
-                else{
-                    if(password.equals(confirmPassword)){
-                        // make the async network operation
+                } else {
+                    if (password.equals(confirmPassword)) {
+                        // Perform the async network operation
                         CompletableFuture<String> future = performNetworkOperationUserRegisterAsync(email, password);
+
                         future.thenAccept(registerStatus -> {
                             // This block is executed after the network operation is complete
-                            System.out.println("Result: " + registerStatus);
-                            if(registerStatus.equals("Success") ){
-                                Toast.makeText(SignupActivity.this, "Signup Successfully!", Toast.LENGTH_SHORT).show();
-                                Intent intent = new Intent(getApplicationContext(),LoginActivity.class);
-                                startActivity(intent);
-                            }else if(registerStatus.contains("Username which is already in use")){
-                                Toast.makeText(SignupActivity.this, "User already exists! Please login", Toast.LENGTH_SHORT).show();
-                            } else{
-                                Toast.makeText(SignupActivity.this, "Signup Failed!", Toast.LENGTH_SHORT).show();
-                            }
+                            runOnUiThread(() -> {
+                                if (registerStatus.equals("Success")) {
+                                    Toast.makeText(SignupActivity.this, "Signup Successfully!", Toast.LENGTH_SHORT).show();
+                                    Intent intent = new Intent(getApplicationContext(), LoginActivity.class);
+                                    startActivity(intent);
+                                } else if (registerStatus.contains("Username which is already in use")) {
+                                    Toast.makeText(SignupActivity.this, "User already exists! Please login", Toast.LENGTH_SHORT).show();
+                                } else {
+                                    Toast.makeText(SignupActivity.this, "Signup Failed!", Toast.LENGTH_SHORT).show();
+                                }
+                            });
                         }).exceptionally(ex -> {
                             // This block is executed if an exception occurs
-                            System.err.println("Network operation failed: " + ex.getMessage());
+                            runOnUiThread(() -> {
+                                Toast.makeText(SignupActivity.this, "Network operation failed: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
+                            });
                             return null;
                         });
-                    }else{
-                        Toast.makeText(SignupActivity.this, "Invalid Password!", Toast.LENGTH_SHORT).show();
+                    } else {
+                        Toast.makeText(SignupActivity.this, "Passwords do not match!", Toast.LENGTH_SHORT).show();
                     }
                 }
             }
@@ -134,6 +137,6 @@ public class SignupActivity extends AppCompatActivity {
                 startActivity(intent);
             }
         });
-
     }
+
 }
