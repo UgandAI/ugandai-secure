@@ -8,6 +8,7 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.ugandai.chatgptbot.databinding.ActivityLoginBinding;
+
 import java.io.DataOutputStream;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
@@ -15,35 +16,23 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
+
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKeys;
-import android.content.Context;
 import android.content.SharedPreferences;
-
 
 public class LoginActivity extends AppCompatActivity {
 
-    ActivityLoginBinding binding;
-    DatabaseHelper databaseHelper;
+    private static final String PREFERENCES_FILE = "secure_prefs";  // Define the preferences file name
+    private static final String TOKEN_KEY = "user_token";  // Define the key for storing the token
+
+    private ActivityLoginBinding binding;
 
     public CompletableFuture<String> performNetworkOperationUserLoginAsync(String userName, String password) {
-        return CompletableFuture.supplyAsync(() -> {
-            // Perform network operation here
-            return userLogin(userName, password, LoginActivity.this);
-        });
+        return CompletableFuture.supplyAsync(() -> userLogin(userName, password));
     }
 
-    private static String extractTokenFromResponse(String response) {
-        // Assuming the token is in the response like {"access_token":"<TOKEN>","token_type":"bearer"}
-        String[] parts = response.split(",");
-        String tokenPart = parts[0];
-        return tokenPart.split(":")[1].replaceAll("\"", "");
-    }
-
-    private static final String PREFERENCES_FILE = "secure_prefs";
-    private static final String TOKEN_KEY = "user_token";
-
-    public String userLogin(String userName, String password, Context context) {
+    private String userLogin(String userName, String password) {
         String successfulLogin = "failed";
         try {
             String inputLine;
@@ -85,14 +74,8 @@ public class LoginActivity extends AppCompatActivity {
             System.out.println("Token Generation Response: " + tokenContent.toString());
 
             if (successfulLogin.equals("Success")) {
-                // Extract the token from the response
                 String token = extractTokenFromResponse(tokenContent.toString());
-
-                // Save the token securely
-                saveTokenToEncryptedPreferences(context, token);
-
-                //                token = getTokenFromEncryptedPreferences(context);
-                //                System.out.println(token);
+                saveTokenToEncryptedPreferences(token);
             } else {
                 successfulLogin = tokenContent.toString();
             }
@@ -103,40 +86,49 @@ public class LoginActivity extends AppCompatActivity {
         return successfulLogin;
     }
 
-    private String getTokenFromEncryptedPreferences(Context context) throws Exception {
-        // Get the master key for encryption
-        String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
-
-        // Create (or retrieve) EncryptedSharedPreferences object
-        SharedPreferences sharedPreferences = EncryptedSharedPreferences.create(
-                "secure_prefs",
-                masterKeyAlias,
-                context,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        );
-
-        // Retrieve the token securely
-        return sharedPreferences.getString("user_token", null);
+    private String extractTokenFromResponse(String response) {
+        String[] parts = response.split(",");
+        String tokenPart = parts[0];
+        return tokenPart.split(":")[1].replaceAll("\"", "").trim();
     }
 
-    private static void saveTokenToEncryptedPreferences(Context context, String token) throws Exception {
-        // Get the master key for encryption
-        String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
+    private String getTokenFromEncryptedPreferences() {
+        try {
+            String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
 
-        // Create (or retrieve) EncryptedSharedPreferences object
-        SharedPreferences sharedPreferences = EncryptedSharedPreferences.create(
-                PREFERENCES_FILE,
-                masterKeyAlias,
-                context,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        );
+            SharedPreferences sharedPreferences = EncryptedSharedPreferences.create(
+                    PREFERENCES_FILE,
+                    masterKeyAlias,
+                    this,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
 
-        // Save the token securely
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putString(TOKEN_KEY, token);
-        editor.apply();
+            return sharedPreferences.getString(TOKEN_KEY, null);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+
+    private void saveTokenToEncryptedPreferences(String token) {
+        try {
+            String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
+
+            SharedPreferences sharedPreferences = EncryptedSharedPreferences.create(
+                    PREFERENCES_FILE,
+                    masterKeyAlias,
+                    this,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString(TOKEN_KEY, token);
+            editor.apply();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -145,34 +137,28 @@ public class LoginActivity extends AppCompatActivity {
         binding = ActivityLoginBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
-        databaseHelper = new DatabaseHelper(this);
-
         binding.loginButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
                 String email = binding.loginEmail.getText().toString();
                 String password = binding.loginPassword.getText().toString();
 
-                if(email.isEmpty() || password.isEmpty()) {
+                if (email.isEmpty() || password.isEmpty()) {
                     Toast.makeText(LoginActivity.this, "All fields are mandatory", Toast.LENGTH_SHORT).show();
-                }
-                else{
+                } else {
                     CompletableFuture<String> future = performNetworkOperationUserLoginAsync(email, password);
 
                     future.thenAccept(loginStatus -> {
-                        // This block is executed after the network operation is complete
                         runOnUiThread(() -> {
                             if (loginStatus.equals("Success")) {
                                 Toast.makeText(LoginActivity.this, "Login Successfully!", Toast.LENGTH_SHORT).show();
-                                Intent intent  = new Intent(getApplicationContext(), ChatActivity.class);
+                                Intent intent = new Intent(getApplicationContext(), ChatActivity.class);
                                 startActivity(intent);
-                            }
-                            else {
+                            } else {
                                 Toast.makeText(LoginActivity.this, "Invalid Credentials", Toast.LENGTH_SHORT).show();
                             }
                         });
                     }).exceptionally(ex -> {
-                        // This block is executed if an exception occurs
                         runOnUiThread(() -> {
                             Toast.makeText(LoginActivity.this, "Network operation failed: " + ex.getMessage(), Toast.LENGTH_SHORT).show();
                         });
@@ -190,4 +176,5 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
     }
+
 }
