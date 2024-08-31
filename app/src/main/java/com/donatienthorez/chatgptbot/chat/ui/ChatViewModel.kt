@@ -7,7 +7,7 @@ import androidx.lifecycle.viewModelScope
 import com.ugandai.chatgptbot.chat.data.Conversation
 import com.ugandai.chatgptbot.chat.data.Message
 import com.ugandai.chatgptbot.chat.data.MessageStatus
-import com.ugandai.chatgptbot.chat.domain.usecase.ObserveMessagesUseCase
+import com.donatienthorez.chatgptbot.chat.domain.usecase.ObserveMessagesUseCase
 import com.ugandai.chatgptbot.chat.domain.usecase.ResendMessageUseCase
 import com.ugandai.chatgptbot.chat.domain.usecase.SendChatRequestUseCase
 import kotlinx.coroutines.launch
@@ -63,13 +63,13 @@ class ChatViewModel(
             )
 
             // Call the sendChatRequestUseCase with the initialized conversation and vectorStoreId
-            sendChatRequestUseCase.invoke(prompt, vectorStoreId)
+            sendChatRequestUseCase.invoke(prompt)
         }
     }
 
     fun resendMessage(message: Message) {
         viewModelScope.launch {
-            resendChatRequestUseCase.invoke(message, "vs_KAR65HLoh4s5u03A92nd4Cwc")
+            resendChatRequestUseCase.invoke(message)
         }
     }
 }

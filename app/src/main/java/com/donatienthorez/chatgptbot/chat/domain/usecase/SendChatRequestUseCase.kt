@@ -4,6 +4,7 @@ import com.ugandai.chatgptbot.chat.data.ConversationRepository
 import com.ugandai.chatgptbot.chat.data.Message
 import com.ugandai.chatgptbot.chat.data.MessageStatus
 import com.ugandai.chatgptbot.chat.data.api.OpenAIRepository
+import kotlinx.coroutines.delay
 
 class SendChatRequestUseCase(
     private val openAIRepository: OpenAIRepository,
@@ -11,8 +12,7 @@ class SendChatRequestUseCase(
 ) {
 
     suspend operator fun invoke(
-        prompt: String,
-        vectorStoreId: String // New parameter for vector store ID
+        prompt: String
     ) {
         val message = Message(
             text = prompt,
@@ -22,7 +22,7 @@ class SendChatRequestUseCase(
         val conversation = conversationRepository.addMessage(message)
 
         try {
-            val reply = openAIRepository.sendChatRequest(conversation, vectorStoreId) // Pass vector store ID
+            val reply = openAIRepository.sendChatRequest(conversation, message.text)
             conversationRepository.setMessageStatusToSent(message.id)
             conversationRepository.addMessage(reply)
         } catch (exception: Exception) {

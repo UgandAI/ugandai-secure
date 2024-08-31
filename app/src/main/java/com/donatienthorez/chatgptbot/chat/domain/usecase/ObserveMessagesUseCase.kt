@@ -1,4 +1,4 @@
-package com.ugandai.chatgptbot.chat.domain.usecase
+package com.donatienthorez.chatgptbot.chat.domain.usecase
 
 import com.ugandai.chatgptbot.chat.data.ConversationRepository
 
