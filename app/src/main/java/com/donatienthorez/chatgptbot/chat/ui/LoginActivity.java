@@ -37,7 +37,7 @@ public class LoginActivity extends AppCompatActivity {
         try {
             String inputLine;
 
-            URL tokenUrl = new URL("http://10.0.2.2:8000/api/token");
+            URL tokenUrl = new URL("http://ec2-54-85-226-52.compute-1.amazonaws.com:8000/api/token");
             HttpURLConnection conToken = (HttpURLConnection) tokenUrl.openConnection();
 
             conToken.setRequestMethod("POST");

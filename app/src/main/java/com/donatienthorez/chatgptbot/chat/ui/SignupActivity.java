@@ -30,11 +30,10 @@ public class SignupActivity extends AppCompatActivity {
     }
 
     private static String userRegister(String userName, String password) {
-        //TODO: Need to Return "Already Exists" if user already exists as well.
         String userCreationSuccess = "Failed";
         try {
             // Step 1: Create a new user by sending a POST request to the /users/ endpoint
-            URL userUrl = new URL("http://10.0.2.2:8000/users/register");
+            URL userUrl = new URL("http://ec2-54-85-226-52.compute-1.amazonaws.com:8000/users/register/");
             HttpURLConnection conUser = (HttpURLConnection) userUrl.openConnection();
 
             conUser.setRequestMethod("POST");
@@ -51,6 +50,28 @@ public class SignupActivity extends AppCompatActivity {
 
             int userStatus = conUser.getResponseCode();
             System.out.println("User Creation Response Code: " + userStatus);
+
+            if (userStatus == 307 || userStatus == HttpURLConnection.HTTP_MOVED_TEMP) {
+                // Handle 307 redirect
+                String newUrl = conUser.getHeaderField("Location");
+                System.out.println("Redirecting to: " + newUrl);
+                conUser.disconnect();
+
+                // Resend the request to the new URL
+                userUrl = new URL(newUrl);
+                conUser = (HttpURLConnection) userUrl.openConnection();
+                conUser.setRequestMethod("POST");
+                conUser.setRequestProperty("Content-Type", "application/json; utf-8");
+                conUser.setRequestProperty("Accept", "application/json");
+                conUser.setDoOutput(true);
+
+                try (DataOutputStream out = new DataOutputStream(conUser.getOutputStream())) {
+                    out.writeBytes(jsonUserInputString);
+                    out.flush();
+                }
+
+                userStatus = conUser.getResponseCode();
+            }
 
             BufferedReader inUser;
             if (userStatus >= 200 && userStatus < 300) {
@@ -75,11 +96,11 @@ public class SignupActivity extends AppCompatActivity {
             System.out.println("User Creation Response: " + userContent.toString());
 
         } catch (Exception e) {
-            //TODO: Set userCreationSuccess to exception string
             e.printStackTrace();
         }
         return userCreationSuccess;
     }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
