@@ -33,7 +33,7 @@ public class SignupActivity extends AppCompatActivity {
         String userCreationSuccess = "Failed";
         try {
             // Step 1: Create a new user by sending a POST request to the /users/ endpoint
-            URL userUrl = new URL("http://ec2-54-85-226-52.compute-1.amazonaws.com:8000/users/register/");
+            URL userUrl = new URL("http://127.0.0.1:8000/users/register/");
             HttpURLConnection conUser = (HttpURLConnection) userUrl.openConnection();
 
             conUser.setRequestMethod("POST");
