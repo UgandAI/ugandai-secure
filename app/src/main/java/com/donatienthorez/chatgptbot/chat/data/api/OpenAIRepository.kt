@@ -40,7 +40,7 @@ class OpenAIRepository(private val openAI: OpenAI, private val context: Context)
         // Execute network operation on IO thread
         contentString = withContext(Dispatchers.IO) {
             try {
-                val url = URL("http://127.0.0.1:8000/chats")
+                val url = URL("http://ec2-54-85-226-52.compute-1.amazonaws.com:8000/chats")
                 val con = url.openConnection() as HttpURLConnection
 
                 con.requestMethod = "POST"
