@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="com.ugandai.chatgptbot">
+    package="com.ugandai.ugandai">
     <uses-permission android:name="android.permission.INTERNET" />
     <application
-        android:name=".ChatGptBotApplication"
+        android:name=".UgandAI"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -16,10 +16,10 @@
         android:usesCleartextTraffic="true"
         tools:targetApi="31">
         <activity
-            android:name="com.donatienthorez.chatgptbot.chat.ui.SignupActivity"
+            android:name="com.donatienthorez.ugandai.chat.ui.SignupActivity"
             android:exported="false" />
         <activity
-            android:name="com.donatienthorez.chatgptbot.chat.ui.LoginActivity"
+            android:name="com.donatienthorez.ugandai.chat.ui.LoginActivity"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -27,7 +27,7 @@
             </intent-filter>
         </activity>
         <activity
-            android:name="com.donatienthorez.chatgptbot.chat.ui.ChatActivity"
+            android:name="com.donatienthorez.ugandai.chat.ui.ChatActivity"
             android:screenOrientation="portrait"
             android:exported="true"
             android:windowSoftInputMode="adjustResize">

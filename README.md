@@ -1,4 +1,4 @@
-# ChatGptBot
+# UgandAI
 
 This repository contains the source code for a chat application that uses the OpenAI API (and openai-kotlin library available [here](https://github.com/aallam/openai-kotlin)).
 The app allows users to chat with an AI model that uses OpenAI's GPT-3 language model to generate responses using the Chat Mode in OpenAI Playground.

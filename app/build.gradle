@@ -4,11 +4,11 @@ plugins {
 }
 
 android {
-    namespace = 'com.ugandai.chatgptbot'
+    namespace = 'com.ugandai.ugandai'
     compileSdk = 34
 
     defaultConfig {
-        applicationId = 'com.ugandai.chatgptbot'
+        applicationId = 'com.ugandai.ugandai'
         minSdk = 24
         targetSdk = 34
         versionCode = 1
