@@ -138,10 +138,10 @@ fun MessageList(
                     )
                 }
                 Text(
-                    text = message.text,
+                    text = removeMarkdownMarkers(message.text), // Use the cleaned text
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.inverseSurface,
-                    textAlign = if (message.isFromUser) { TextAlign.End } else { TextAlign.Start },
+                    textAlign = if (message.isFromUser) TextAlign.End else TextAlign.Start,
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
                         .background(
@@ -159,7 +159,6 @@ fun MessageList(
                             onResendMessage(message)
                         }
                         .padding(all = 8.dp)
-
                 )
                 if (!message.isFromUser) {
                     HorizontalSpacer(width = 16.dp)
@@ -197,3 +196,15 @@ fun MessageList(
         }
     }
 }
+
+fun removeMarkdownMarkers(text: String): String {
+    // Regex to match **bold** and *italic* markers
+    val boldRegex = "\\*\\*(.*?)\\*\\*".toRegex() // Matches text wrapped in ** **
+    val italicRegex = "\\*(.*?)\\*".toRegex()    // Matches text wrapped in * *
+
+    // Replace bold and italic markers with just the inner text
+    return text
+        .replace(boldRegex, "$1") // Keeps only the content inside ** **
+        .replace(italicRegex, "$1") // Keeps only the content inside * *
+}
+
