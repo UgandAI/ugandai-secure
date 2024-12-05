@@ -10,7 +10,7 @@ val networkModule = module {
 
 fun provideOpenAI() : OpenAI {
     val config = OpenAIConfig(
-        token = "OPEN_AI_API_KEY"
+        token = ""
     )
 
     return OpenAI(config)
