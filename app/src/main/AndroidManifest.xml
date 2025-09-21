@@ -32,5 +32,10 @@
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
         </activity>
+        <activity
+            android:name="com.donatienthorez.ugandai.questionnaire.QuestionnaireActivity"
+            android:screenOrientation="portrait"
+            android:exported="false">
+        </activity>
     </application>
 </manifest>
