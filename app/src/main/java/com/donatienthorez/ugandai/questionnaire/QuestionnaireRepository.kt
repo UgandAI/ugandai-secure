@@ -10,12 +10,13 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * Step 2: Simple repository for questionnaire data
- * Uses EncryptedSharedPreferences + JSON (reusing existing patterns)
+ * simple repository for questionnaire data
  */
 class QuestionnaireRepository(private val context: Context) {
     
-    private val encryptedPrefs = getEncryptedSharedPreferences()
+    private val prefs by lazy {
+        context.getSharedPreferences("questionnaire_prefs", Context.MODE_PRIVATE)
+    }
     
     private val _questionnaireState = MutableStateFlow(QuestionnaireState())
     val questionnaireState: StateFlow<QuestionnaireState> = _questionnaireState
@@ -27,7 +28,7 @@ class QuestionnaireRepository(private val context: Context) {
         val userId = getCurrentUserId()
         if (userId.isEmpty()) return
         
-        val answersJson = encryptedPrefs.getString("questionnaire_answers_$userId", "[]")
+        val answersJson = prefs.getString("questionnaire_answers_$userId", "[]")
         val answers = parseAnswersFromJson(answersJson ?: "[]")
         
         _questionnaireState.value = _questionnaireState.value.copy(
@@ -45,16 +46,16 @@ class QuestionnaireRepository(private val context: Context) {
         if (userId.isEmpty()) return
         
         // Get existing answers
-        val answersJson = encryptedPrefs.getString("questionnaire_answers_$userId", "[]")
+        val answersJson = prefs.getString("questionnaire_answers_$userId", "[]")
         val existingAnswers = parseAnswersFromJson(answersJson ?: "[]").toMutableList()
         
         // Remove old answer for same question if exists
         existingAnswers.removeAll { it.questionId == answer.questionId }
         existingAnswers.add(answer)
         
-        // Save back to EncryptedSharedPreferences as JSON
+        // Save back to SharedPreferences as JSON
         val newAnswersJson = convertAnswersToJson(existingAnswers)
-        encryptedPrefs.edit()
+        prefs.edit()
             .putString("questionnaire_answers_$userId", newAnswersJson)
             .apply()
         
@@ -82,8 +83,23 @@ class QuestionnaireRepository(private val context: Context) {
     }
     
     private fun getCurrentUserId(): String {
-        // For now, use a simple approach - later can integrate with existing login
-        return encryptedPrefs.getString("user_id", "test_user") ?: "test_user"
+        // Get user ID from the same encrypted preferences used by login system
+        try {
+            val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
+            val loginPrefs = EncryptedSharedPreferences.create(
+                "secure_prefs", // Same file as LoginActivity
+                masterKeyAlias,
+                context,
+                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            )
+            
+            // Get the user_id (email) saved during login
+            return loginPrefs.getString("user_id", "") ?: ""
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return ""
+        }
     }
     
     private fun convertAnswersToJson(answers: List<QuestionnaireAnswer>): String {
@@ -117,16 +133,5 @@ class QuestionnaireRepository(private val context: Context) {
             e.printStackTrace()
         }
         return answers
-    }
     
-    private fun getEncryptedSharedPreferences(): SharedPreferences {
-        val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-        return EncryptedSharedPreferences.create(
-            "questionnaire_prefs",
-            masterKeyAlias,
-            context,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-    }
-}
+    private fun convertAnswersToJson(answers: List<QuestionnaireAnswer>): String {
