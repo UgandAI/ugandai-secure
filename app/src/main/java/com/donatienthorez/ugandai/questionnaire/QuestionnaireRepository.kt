@@ -77,7 +77,7 @@ class QuestionnaireRepository(private val context: Context) {
         val userId = getCurrentUserId()
         if (userId.isEmpty()) return false
         
-        val answersJson = encryptedPrefs.getString("questionnaire_answers_$userId", "[]")
+        val answersJson = prefs.getString("questionnaire_answers_$userId", "[]")
         val answers = parseAnswersFromJson(answersJson ?: "[]")
         return answers.size >= 5
     }
@@ -133,5 +133,5 @@ class QuestionnaireRepository(private val context: Context) {
             e.printStackTrace()
         }
         return answers
-    
-    private fun convertAnswersToJson(answers: List<QuestionnaireAnswer>): String {
+    }
+}
