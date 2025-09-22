@@ -18,7 +18,7 @@ import com.donatienthorez.ugandai.chat.ui.ChatActivity
 import com.ugandai.ugandai.ui.ChatGptBotAppTheme
 
 /**
- * Simple questionnaire activity for 2-question flow
+ * Questionnaire activity for 2-question flow
  */
 class QuestionnaireActivity : ComponentActivity() {
     
