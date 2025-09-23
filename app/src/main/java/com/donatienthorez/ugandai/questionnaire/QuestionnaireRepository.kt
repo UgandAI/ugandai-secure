@@ -108,8 +108,9 @@ class QuestionnaireRepository(private val context: Context) {
     }
     
     private fun getCurrentUserId(): String {
-        // Simple user ID - just use "default_user" for everyone
-        return "default_user"
+        // Get user ID from regular login preferences (no encryption)
+        val loginPrefs = context.getSharedPreferences("login_prefs", Context.MODE_PRIVATE)
+        return loginPrefs.getString("current_user_email", "default_user") ?: "default_user"
     }
     
     private fun convertAnswersToJson(answers: List<QuestionnaireAnswer>): String {

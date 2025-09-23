@@ -133,6 +133,14 @@ public class LoginActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+    
+    private void saveUserEmailToSimplePrefs(String email) {
+        // Save user email for questionnaire isolation (no encryption)
+        SharedPreferences loginPrefs = getSharedPreferences("login_prefs", MODE_PRIVATE);
+        loginPrefs.edit()
+                .putString("current_user_email", email)
+                .apply();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -155,6 +163,10 @@ public class LoginActivity extends AppCompatActivity {
                         runOnUiThread(() -> {
                             if (loginStatus.equals("Success")) {
                                 Toast.makeText(LoginActivity.this, "Login Successfully!", Toast.LENGTH_SHORT).show();
+                                
+                                // Save user email for questionnaire user isolation (simple preferences)
+                                saveUserEmailToSimplePrefs(email);
+                                
                                 // For now, always go to questionnaire (simple 2-question flow)
                                 Intent intent = new Intent(getApplicationContext(), com.donatienthorez.ugandai.questionnaire.QuestionnaireActivity.class);
                                 startActivity(intent);
