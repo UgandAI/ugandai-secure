@@ -7,7 +7,8 @@ package com.donatienthorez.ugandai.questionnaire
 data class QuestionnaireQuestion(
     val id: String,
     val text: String,
-    val options: List<String>
+    val options: List<String>,
+    val followUpQuestions: Map<String, QuestionnaireQuestion> = emptyMap() // Maps option -> follow-up question
 )
 
 data class QuestionnaireAnswer(
@@ -18,40 +19,45 @@ data class QuestionnaireAnswer(
 
 data class QuestionnaireState(
     val currentQuestionIndex: Int = 0,
+    val currentQuestion: QuestionnaireQuestion? = null,
     val answers: List<QuestionnaireAnswer> = emptyList(),
-    val isComplete: Boolean = false,
-    val isLoading: Boolean = false
+    val isComplete: Boolean = false
 )
 
 /**
  * Sample questions
  */
 object QuestionnaireData {
-    val STARTER_QUESTIONS = listOf(
+    val questions = listOf(
         QuestionnaireQuestion(
-            id = "crop",
-            text = "What crop are you primarily growing?",
-            options = listOf("Maize (Corn)", "Beans", "Coffee", "Bananas", "Cassava", "Sweet Potatoes", "Other")
-        ),
-        QuestionnaireQuestion(
-            id = "challenge", 
-            text = "What is your biggest farming challenge?",
-            options = listOf("Pests & Diseases", "Weather/Climate", "Poor Soil", "Lack of Water", "Limited Seeds/Tools", "Market Access", "Knowledge Gap")
-        ),
-        QuestionnaireQuestion(
-            id = "land_size",
-            text = "How much land do you farm?",
-            options = listOf("Less than 1 acre", "1-2 acres", "3-5 acres", "6-10 acres", "More than 10 acres")
-        ),
-        QuestionnaireQuestion(
-            id = "location",
-            text = "Which region of Uganda are you in?",
-            options = listOf("Central", "Eastern", "Northern", "Western", "Prefer not to say")
-        ),
-        QuestionnaireQuestion(
-            id = "goal",
-            text = "What is your main farming goal?",
-            options = listOf("Feed my family", "Sell for income", "Both food and income", "Learn new techniques", "Expand my farm")
+            id = "crop_type",
+            text = "What is your primary crop?",
+            options = listOf("Maize", "Coffee", "Beans", "Bananas"),
+            followUpQuestions = mapOf(
+                "Maize" to QuestionnaireQuestion(
+                    id = "maize_challenge",
+                    text = "What is your biggest challenge with maize farming?",
+                    options = listOf("Pests", "Weather", "Seeds quality", "Market prices")
+                ),
+                "Coffee" to QuestionnaireQuestion(
+                    id = "coffee_challenge", 
+                    text = "What is your main coffee farming concern?",
+                    options = listOf("Disease", "Processing", "Quality", "Buyers")
+                ),
+                "Beans" to QuestionnaireQuestion(
+                    id = "beans_challenge",
+                    text = "What issue do you face with beans?",
+                    options = listOf("Soil fertility", "Storage", "Harvesting", "Varieties")
+                ),
+                "Bananas" to QuestionnaireQuestion(
+                    id = "bananas_challenge",
+                    text = "What is your main banana farming challenge?",
+                    options = listOf("Diseases", "Spacing", "Fertilizers", "Harvesting")
+                )
+            )
         )
     )
+    
+    // For backward compatibility with existing UI
+    val STARTER_QUESTIONS = questions
 }

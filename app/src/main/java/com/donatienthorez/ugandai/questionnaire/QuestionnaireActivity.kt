@@ -61,12 +61,9 @@ fun QuestionnaireScreen(
 ) {
     val state = repository.questionnaireState.collectAsState()
     
-    // Show only first 2 questions for this simple flow
-    val questionsToShow = QuestionnaireData.STARTER_QUESTIONS.take(2)
-    
-    // Auto-complete when 2 questions answered
-    LaunchedEffect(state.value.answers.size) {
-        if (state.value.answers.size >= 2) {
+    // Auto-complete when questionnaire is done
+    LaunchedEffect(state.value.isComplete) {
+        if (state.value.isComplete) {
             onComplete()
         }
     }
@@ -100,7 +97,7 @@ fun QuestionnaireScreen(
         )
         
         Text(
-            text = "Question ${state.value.currentQuestionIndex + 1} of 2",
+            text = "Question ${state.value.currentQuestionIndex + 1}",
             style = MaterialTheme.typography.labelMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
@@ -108,9 +105,8 @@ fun QuestionnaireScreen(
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Current question
-        if (state.value.currentQuestionIndex < questionsToShow.size) {
-            val question = questionsToShow[state.value.currentQuestionIndex]
+        // Current question - use dynamic question from state
+        state.value.currentQuestion?.let { question ->
             
             Card(
                 modifier = Modifier.fillMaxWidth(),
