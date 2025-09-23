@@ -1,9 +1,6 @@
 package com.donatienthorez.ugandai.questionnaire
 
 import android.content.Context
-import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKeys
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import org.json.JSONArray
@@ -26,7 +23,6 @@ class QuestionnaireRepository(private val context: Context) {
      */
     fun loadUserProgress() {
         val userId = getCurrentUserId()
-        if (userId.isEmpty()) return
         
         val answersJson = prefs.getString("questionnaire_answers_$userId", "[]")
         val answers = parseAnswersFromJson(answersJson ?: "[]")
@@ -47,7 +43,6 @@ class QuestionnaireRepository(private val context: Context) {
      */
     fun saveAnswer(answer: QuestionnaireAnswer) {
         val userId = getCurrentUserId()
-        if (userId.isEmpty()) return
         
         // Get existing answers
         val answersJson = prefs.getString("questionnaire_answers_$userId", "[]")
@@ -80,7 +75,6 @@ class QuestionnaireRepository(private val context: Context) {
      */
     fun isQuestionnaireComplete(): Boolean {
         val userId = getCurrentUserId()
-        if (userId.isEmpty()) return false
         
         val answersJson = prefs.getString("questionnaire_answers_$userId", "[]")
         val answers = parseAnswersFromJson(answersJson ?: "[]")
@@ -114,23 +108,8 @@ class QuestionnaireRepository(private val context: Context) {
     }
     
     private fun getCurrentUserId(): String {
-        // Get user ID from the same encrypted preferences used by login system
-        try {
-            val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-            val loginPrefs = EncryptedSharedPreferences.create(
-                "secure_prefs", // Same file as LoginActivity
-                masterKeyAlias,
-                context,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-            )
-            
-            // Get the user_id (email) saved during login
-            return loginPrefs.getString("user_id", "") ?: ""
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return ""
-        }
+        // Simple user ID - just use "default_user" for everyone
+        return "default_user"
     }
     
     private fun convertAnswersToJson(answers: List<QuestionnaireAnswer>): String {
