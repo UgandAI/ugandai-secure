@@ -57,6 +57,4 @@ object QuestionnaireData {
             )
         )
     )
-    
-    val STARTER_QUESTIONS = questions
 }
