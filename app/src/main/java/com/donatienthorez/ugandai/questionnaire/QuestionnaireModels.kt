@@ -58,6 +58,5 @@ object QuestionnaireData {
         )
     )
     
-    // For backward compatibility with existing UI
     val STARTER_QUESTIONS = questions
 }
