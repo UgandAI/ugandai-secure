@@ -31,7 +31,6 @@ class QuestionnaireRepository(private val context: Context) {
         val isComplete = nextQuestion == null && answers.isNotEmpty()
         
         _questionnaireState.value = _questionnaireState.value.copy(
-            currentQuestionIndex = answers.size,
             currentQuestion = nextQuestion,
             answers = answers,
             isComplete = isComplete
@@ -63,7 +62,6 @@ class QuestionnaireRepository(private val context: Context) {
         val isComplete = nextQuestion == null && existingAnswers.isNotEmpty()
         
         _questionnaireState.value = _questionnaireState.value.copy(
-            currentQuestionIndex = existingAnswers.size,
             currentQuestion = nextQuestion,
             answers = existingAnswers,
             isComplete = isComplete
@@ -119,7 +117,6 @@ class QuestionnaireRepository(private val context: Context) {
             val jsonObject = JSONObject().apply {
                 put("questionId", answer.questionId)
                 put("selectedOption", answer.selectedOption)
-                put("timestamp", answer.timestamp)
             }
             jsonArray.put(jsonObject)
         }
@@ -135,8 +132,7 @@ class QuestionnaireRepository(private val context: Context) {
                 answers.add(
                     QuestionnaireAnswer(
                         questionId = jsonObject.getString("questionId"),
-                        selectedOption = jsonObject.getString("selectedOption"),
-                        timestamp = jsonObject.getLong("timestamp")
+                        selectedOption = jsonObject.getString("selectedOption")
                     )
                 )
             }
