@@ -92,12 +92,12 @@ fun QuestionnaireScreen(
         
         // Progress
         LinearProgressIndicator(
-            progress = state.value.currentQuestionIndex.toFloat() / 2f,
+            progress = state.value.answers.size.toFloat() / 2f,
             modifier = Modifier.fillMaxWidth(),
         )
         
         Text(
-            text = "Question ${state.value.currentQuestionIndex + 1}",
+            text = "Question ${state.value.answers.size + 1}",
             style = MaterialTheme.typography.labelMedium,
             textAlign = TextAlign.Center,
             modifier = Modifier.fillMaxWidth()
