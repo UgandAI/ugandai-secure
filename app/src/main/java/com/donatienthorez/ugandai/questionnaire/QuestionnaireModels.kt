@@ -13,12 +13,10 @@ data class QuestionnaireQuestion(
 
 data class QuestionnaireAnswer(
     val questionId: String,
-    val selectedOption: String,
-    val timestamp: Long = System.currentTimeMillis()
+    val selectedOption: String
 )
 
 data class QuestionnaireState(
-    val currentQuestionIndex: Int = 0,
     val currentQuestion: QuestionnaireQuestion? = null,
     val answers: List<QuestionnaireAnswer> = emptyList(),
     val isComplete: Boolean = false
