@@ -164,10 +164,8 @@ public class LoginActivity extends AppCompatActivity {
                             if (loginStatus.equals("Success")) {
                                 Toast.makeText(LoginActivity.this, "Login Successfully!", Toast.LENGTH_SHORT).show();
                                 
-                                // Save user email for questionnaire user isolation (simple preferences)
                                 saveUserEmailToSimplePrefs(email);
                                 
-                                // For now, always go to questionnaire (simple 2-question flow)
                                 Intent intent = new Intent(getApplicationContext(), com.donatienthorez.ugandai.questionnaire.QuestionnaireActivity.class);
                                 startActivity(intent);
                             } else {
