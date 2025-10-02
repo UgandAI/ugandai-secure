@@ -85,20 +85,15 @@ class QuestionnaireRepository(private val context: Context) {
     private fun getNextQuestion(answers: List<QuestionnaireAnswer>): QuestionnaireQuestion? {
         // If no answers yet, return first question
         if (answers.isEmpty()) {
-            return QuestionnaireData.questions.firstOrNull()
+            return QuestionnaireData.cropQuestion
         }
         
-        // If we have the first answer, find appropriate follow-up
-        val firstAnswer = answers.find { it.questionId == "crop_type" }
-        if (firstAnswer != null) {
-            val firstQuestion = QuestionnaireData.questions.find { it.id == "crop_type" }
-            val followUp = firstQuestion?.followUpQuestions?.get(firstAnswer.selectedOption)
-            
-            // Check if we already answered the follow-up
-            val hasFollowUp = answers.any { it.questionId == followUp?.id }
-            if (followUp != null && !hasFollowUp) {
-                return followUp
-            }
+        // If we answered crop question but not challenge, return challenge
+        val hasCropAnswer = answers.any { it.questionId == "crop_type" }
+        val hasChallengeAnswer = answers.any { it.questionId == "challenge" }
+        
+        if (hasCropAnswer && !hasChallengeAnswer) {
+            return QuestionnaireData.challengeQuestion
         }
         
         // No more questions

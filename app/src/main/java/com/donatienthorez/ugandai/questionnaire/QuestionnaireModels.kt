@@ -23,36 +23,18 @@ data class QuestionnaireState(
 )
 
 /**
- * Sample questions
+ * Simple 2-question flow
  */
 object QuestionnaireData {
-    val questions = listOf(
-        QuestionnaireQuestion(
-            id = "crop_type",
-            text = "What is your primary crop?",
-            options = listOf("Maize", "Coffee", "Beans", "Bananas"),
-            followUpQuestions = mapOf(
-                "Maize" to QuestionnaireQuestion(
-                    id = "maize_challenge",
-                    text = "What is your biggest challenge with maize farming?",
-                    options = listOf("Pests", "Weather", "Seeds quality", "Market prices")
-                ),
-                "Coffee" to QuestionnaireQuestion(
-                    id = "coffee_challenge", 
-                    text = "What is your main coffee farming concern?",
-                    options = listOf("Disease", "Processing", "Quality", "Buyers")
-                ),
-                "Beans" to QuestionnaireQuestion(
-                    id = "beans_challenge",
-                    text = "What issue do you face with beans?",
-                    options = listOf("Soil fertility", "Storage", "Harvesting", "Varieties")
-                ),
-                "Bananas" to QuestionnaireQuestion(
-                    id = "bananas_challenge",
-                    text = "What is your main banana farming challenge?",
-                    options = listOf("Diseases", "Spacing", "Fertilizers", "Harvesting")
-                )
-            )
-        )
+    val cropQuestion = QuestionnaireQuestion(
+        id = "crop_type",
+        text = "What is your primary crop?",
+        options = listOf("Maize", "Coffee", "Beans", "Bananas")
+    )
+    
+    val challengeQuestion = QuestionnaireQuestion(
+        id = "challenge",
+        text = "What is your biggest farming challenge?",
+        options = listOf("Pests", "Weather", "Soil", "Market")
     )
 }
