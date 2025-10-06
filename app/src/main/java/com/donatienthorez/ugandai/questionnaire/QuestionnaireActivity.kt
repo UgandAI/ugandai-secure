@@ -35,14 +35,14 @@ class QuestionnaireActivity : ComponentActivity() {
                 QuestionnaireScreen(
                     repository = repository,
                     onComplete = { 
-                        // Navigate to chat when done
-                        val intent = Intent(this@QuestionnaireActivity, ChatActivity::class.java)
+                        // Navigate to preset prompts when questionnaire is done
+                        val intent = Intent(this@QuestionnaireActivity, com.donatienthorez.ugandai.chat.ui.presets.PresetPromptsActivity::class.java)
                         startActivity(intent)
                         finish()
                     },
                     onSkip = {
-                        // Skip to chat
-                        val intent = Intent(this@QuestionnaireActivity, ChatActivity::class.java)
+                        // Skip to preset prompts
+                        val intent = Intent(this@QuestionnaireActivity, com.donatienthorez.ugandai.chat.ui.presets.PresetPromptsActivity::class.java)
                         startActivity(intent)
                         finish()
                     }
