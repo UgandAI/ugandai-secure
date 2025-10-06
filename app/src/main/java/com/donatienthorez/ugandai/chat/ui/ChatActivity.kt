@@ -17,6 +17,10 @@ class ChatActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Check for preset prompt
+        val presetPrompt = intent.getStringExtra("preset_prompt")
+        
         setContent {
             ChatGptBotAppTheme {
                 ChatScreen(
@@ -28,6 +32,11 @@ class ChatActivity : ComponentActivity() {
                     isSendingMessage = viewModel.isSendingMessage
                 )
             }
+        }
+        
+        // Auto-send preset prompt if provided
+        presetPrompt?.let {
+            viewModel.sendMessage(it, "your_vector_store_id_here")
         }
     }
 }

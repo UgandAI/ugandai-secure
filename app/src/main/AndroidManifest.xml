@@ -32,5 +32,10 @@
             android:exported="true"
             android:windowSoftInputMode="adjustResize">
         </activity>
+        <activity
+            android:name="com.donatienthorez.ugandai.chat.ui.presets.PresetPromptsActivity"
+            android:screenOrientation="portrait"
+            android:exported="true">
+        </activity>
     </application>
 </manifest>

@@ -152,7 +152,7 @@ public class LoginActivity extends AppCompatActivity {
                         runOnUiThread(() -> {
                             if (loginStatus.equals("Success")) {
                                 Toast.makeText(LoginActivity.this, "Login Successfully!", Toast.LENGTH_SHORT).show();
-                                Intent intent = new Intent(getApplicationContext(), ChatActivity.class);
+                                Intent intent = new Intent(getApplicationContext(), com.donatienthorez.ugandai.chat.ui.presets.PresetPromptsActivity.class);
                                 startActivity(intent);
                             } else {
                                 Toast.makeText(LoginActivity.this, "Invalid Credentials", Toast.LENGTH_SHORT).show();
