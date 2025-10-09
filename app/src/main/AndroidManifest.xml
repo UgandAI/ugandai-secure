@@ -33,11 +33,6 @@
             android:windowSoftInputMode="adjustResize">
         </activity>
         <activity
-            android:name="com.donatienthorez.ugandai.questionnaire.QuestionnaireActivity"
-            android:screenOrientation="portrait"
-            android:exported="false">
-        </activity>
-        <activity
             android:name="com.donatienthorez.ugandai.chat.ui.presets.PresetPromptsActivity"
             android:screenOrientation="portrait"
             android:exported="true">
