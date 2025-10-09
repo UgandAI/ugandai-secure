@@ -125,21 +125,10 @@ public class LoginActivity extends AppCompatActivity {
 
             SharedPreferences.Editor editor = sharedPreferences.edit();
             editor.putString(TOKEN_KEY, token);
-            // Also save user email as user ID for questionnaire
-            String userEmail = binding.loginEmail.getText().toString();
-            editor.putString("user_id", userEmail);
             editor.apply();
         } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-    
-    private void saveUserEmailToSimplePrefs(String email) {
-        // Save user email for questionnaire isolation (no encryption)
-        SharedPreferences loginPrefs = getSharedPreferences("login_prefs", MODE_PRIVATE);
-        loginPrefs.edit()
-                .putString("current_user_email", email)
-                .apply();
     }
 
     @Override
@@ -163,10 +152,7 @@ public class LoginActivity extends AppCompatActivity {
                         runOnUiThread(() -> {
                             if (loginStatus.equals("Success")) {
                                 Toast.makeText(LoginActivity.this, "Login Successfully!", Toast.LENGTH_SHORT).show();
-                                
-                                saveUserEmailToSimplePrefs(email);
-                                
-                                Intent intent = new Intent(getApplicationContext(), com.donatienthorez.ugandai.questionnaire.QuestionnaireActivity.class);
+                                Intent intent = new Intent(getApplicationContext(), com.donatienthorez.ugandai.chat.ui.presets.PresetPromptsActivity.class);
                                 startActivity(intent);
                             } else {
                                 Toast.makeText(LoginActivity.this, "Invalid Credentials", Toast.LENGTH_SHORT).show();
