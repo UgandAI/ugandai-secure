@@ -22,7 +22,7 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 
 @OptIn(BetaOpenAI::class)
-class OpenAIRepository(private val openAI: OpenAI, private val context: Context) {
+class OpenAIRepository(private val context: Context) {
 
     @Throws(NoChoiceAvailableException::class)
     suspend fun sendChatRequest(
