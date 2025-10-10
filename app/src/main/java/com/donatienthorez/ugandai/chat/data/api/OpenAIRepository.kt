@@ -1,9 +1,7 @@
 package com.ugandai.ugandai.chat.data.api
 
-import com.aallam.openai.api.BetaOpenAI
 import com.aallam.openai.api.chat.ChatMessage
 import com.aallam.openai.api.chat.ChatRole
-import com.aallam.openai.client.OpenAI
 import com.ugandai.ugandai.chat.data.Conversation
 import com.ugandai.ugandai.chat.data.Message
 import com.ugandai.ugandai.chat.data.MessageStatus
@@ -21,7 +19,6 @@ import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 
-@OptIn(BetaOpenAI::class)
 class OpenAIRepository(private val context: Context) {
 
     @Throws(NoChoiceAvailableException::class)
