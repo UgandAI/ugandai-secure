@@ -1,7 +1,5 @@
 package com.ugandai.ugandai.chat.data.api
 
-import com.aallam.openai.api.chat.ChatMessage
-import com.aallam.openai.api.chat.ChatRole
 import com.ugandai.ugandai.chat.data.Conversation
 import com.ugandai.ugandai.chat.data.Message
 import com.ugandai.ugandai.chat.data.MessageStatus
@@ -81,15 +79,6 @@ class OpenAIRepository(private val context: Context) {
             messageStatus = MessageStatus.Sent
         )
     }
-
-    private fun Conversation.toChatMessages() = this.list
-        .filterNot { it.messageStatus == MessageStatus.Error }
-        .map {
-            ChatMessage(
-                content = it.text,
-                role = if (it.isFromUser) ChatRole.User else ChatRole.Assistant
-            )
-        }
 
     // Method to retrieve token from Encrypted SharedPreferences
     private fun getTokenFromEncryptedPreferences(context: Context): String? {
