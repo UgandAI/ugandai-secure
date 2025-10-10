@@ -16,7 +16,7 @@ val chatModule = module {
     }
 
     // Provide OpenAIRepository with context
-    single { OpenAIRepository(openAI = get(), context = androidContext()) }
+    single { OpenAIRepository(context = androidContext()) }
 
     single { ConversationRepository() }
 
