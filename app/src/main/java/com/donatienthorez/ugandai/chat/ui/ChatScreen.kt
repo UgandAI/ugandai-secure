@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
@@ -34,7 +35,8 @@ import kotlinx.coroutines.launch
 
 data class ChatScreenUiHandlers(
     val onSendMessage: (String) -> Unit = {},
-    val onResendMessage: (Message) -> Unit = {}
+    val onResendMessage: (Message) -> Unit = {},
+    val onNavigateToLogBook: () -> Unit = {}
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -62,6 +64,19 @@ fun ChatScreen(
     }
 
     Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Chat") },
+                actions = {
+                    IconButton(onClick = { uiHandlers.onNavigateToLogBook() }) {
+                        Icon(
+                            imageVector = Icons.Default.Book,
+                            contentDescription = "Log Book"
+                        )
+                    }
+                }
+            )
+        },
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
         Column(
