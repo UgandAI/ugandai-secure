@@ -62,9 +62,12 @@
             android:layout_width="match_parent"
             android:layout_height="70dp"
             android:layout_marginTop="30dp"
-            android:text="Login"
+            android:text="LOGIN"
             android:textSize="18sp"
-            app:cornerRadius="30dp" />
+            android:textStyle="bold"
+            android:textColor="@android:color/white"
+            android:background="@drawable/bg_primary_button"
+            android:elevation="6dp"/>
 
         <TextView
             android:id="@+id/signupRedirectText"
