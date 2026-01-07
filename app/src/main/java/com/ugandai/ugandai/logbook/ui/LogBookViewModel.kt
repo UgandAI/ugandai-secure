@@ -26,6 +26,9 @@ class LogBookViewModel(
     private val _editingActivity = MutableStateFlow<FarmActivity?>(null)
     val editingActivity: StateFlow<FarmActivity?> = _editingActivity.asStateFlow()
 
+    private val _prefillDraft = MutableStateFlow<ActivityDraft?>(null)
+    val prefillDraft: StateFlow<ActivityDraft?> = _prefillDraft.asStateFlow()
+
     init {
         loadActivities()
     }
@@ -37,19 +40,22 @@ class LogBookViewModel(
         }
     }
 
-    fun showAddDialog() {
+    fun showAddDialog(prefill: ActivityDraft? = null) {
         _editingActivity.value = null
+        _prefillDraft.value = prefill
         _showDialog.value = true
     }
 
     fun showEditDialog(activity: FarmActivity) {
         _editingActivity.value = activity
+        _prefillDraft.value = null
         _showDialog.value = true
     }
 
     fun hideDialog() {
         _showDialog.value = false
         _editingActivity.value = null
+        _prefillDraft.value = null
     }
 
     fun saveActivity(

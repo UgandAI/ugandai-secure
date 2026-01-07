@@ -25,6 +25,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private static final String PREFERENCES_FILE = "secure_prefs";  // Define the preferences file name
     private static final String TOKEN_KEY = "user_token";  // Define the key for storing the token
+    private static final String USERNAME_KEY = "username";  // Define the key for storing the username
 
     private ActivityLoginBinding binding;
 
@@ -76,6 +77,7 @@ public class LoginActivity extends AppCompatActivity {
             if (successfulLogin.equals("Success")) {
                 String token = extractTokenFromResponse(tokenContent.toString());
                 saveTokenToEncryptedPreferences(token);
+                saveUsernameToEncryptedPreferences(userName);
             } else {
                 successfulLogin = tokenContent.toString();
             }
@@ -125,6 +127,26 @@ public class LoginActivity extends AppCompatActivity {
 
             SharedPreferences.Editor editor = sharedPreferences.edit();
             editor.putString(TOKEN_KEY, token);
+            editor.apply();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void saveUsernameToEncryptedPreferences(String username) {
+        try {
+            String masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
+
+            SharedPreferences sharedPreferences = EncryptedSharedPreferences.create(
+                    PREFERENCES_FILE,
+                    masterKeyAlias,
+                    this,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putString(USERNAME_KEY, username);
             editor.apply();
         } catch (Exception e) {
             e.printStackTrace();

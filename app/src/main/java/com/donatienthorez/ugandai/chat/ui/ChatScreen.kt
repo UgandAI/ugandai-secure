@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.selection.SelectionContainer
 import androidx.compose.ui.Modifier
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -145,36 +146,40 @@ fun MessageList(
         state = listState
     ) {
         items(messagesList) { message ->
-            Row {
+            Row(
+                modifier = Modifier.fillMaxWidth()
+            ) {
                 if (message.isFromUser) {
                     HorizontalSpacer(width = 16.dp)
                     Box(
                         modifier = Modifier.weight(weight = 1f)
                     )
                 }
-                Text(
-                    text = removeMarkdownMarkers(message.text), // Use the cleaned text
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.inverseSurface,
-                    textAlign = if (message.isFromUser) TextAlign.End else TextAlign.Start,
-                    modifier = Modifier
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(
-                            if (message.messageStatus == MessageStatus.Error) {
-                                MaterialTheme.colorScheme.errorContainer
-                            } else {
-                                if (message.isFromUser) {
-                                    MaterialTheme.colorScheme.secondaryContainer
+                SelectionContainer {
+                    Text(
+                        text = removeMarkdownMarkers(message.text), // Use the cleaned text
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.inverseSurface,
+                        modifier = Modifier
+                            .weight(weight = 2f, fill = false)
+                            .clip(RoundedCornerShape(8.dp))
+                            .background(
+                                if (message.messageStatus == MessageStatus.Error) {
+                                    MaterialTheme.colorScheme.errorContainer
                                 } else {
-                                    MaterialTheme.colorScheme.primaryContainer
+                                    if (message.isFromUser) {
+                                        MaterialTheme.colorScheme.secondaryContainer
+                                    } else {
+                                        MaterialTheme.colorScheme.primaryContainer
+                                    }
                                 }
+                            )
+                            .clickable(enabled = message.messageStatus == MessageStatus.Error) {
+                                onResendMessage(message)
                             }
-                        )
-                        .clickable(enabled = message.messageStatus == MessageStatus.Error) {
-                            onResendMessage(message)
-                        }
-                        .padding(all = 8.dp)
-                )
+                            .padding(all = 8.dp)
+                    )
+                }
                 if (!message.isFromUser) {
                     HorizontalSpacer(width = 16.dp)
                     Box(
@@ -222,4 +227,3 @@ fun removeMarkdownMarkers(text: String): String {
         .replace(boldRegex, "$1") // Keeps only the content inside ** **
         .replace(italicRegex, "$1") // Keeps only the content inside * *
 }
-

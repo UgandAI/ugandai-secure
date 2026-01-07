@@ -10,11 +10,13 @@ import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowDropDown
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ugandai.ugandai.logbook.domain.model.ActivityType
 import com.ugandai.ugandai.logbook.domain.model.FarmActivity
@@ -23,11 +25,25 @@ import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LogBookScreen(viewModel: LogBookViewModel) {
+fun LogBookScreen(
+    viewModel: LogBookViewModel,
+    prefillActivity: FarmActivity? = null,
+    prefillDraft: ActivityDraft? = null
+) {
     val activities by viewModel.activities.collectAsState()
     val showDialog by viewModel.showDialog.collectAsState()
     val editingActivity by viewModel.editingActivity.collectAsState()
+    val draftActivity by viewModel.prefillDraft.collectAsState()
     val context = LocalContext.current
+    var handledPrefill by remember { mutableStateOf(false) }
+    val effectivePrefill = prefillDraft ?: prefillActivity?.let { ActivityDraft.fromActivity(it) }
+
+    LaunchedEffect(effectivePrefill) {
+        if (effectivePrefill != null && !handledPrefill) {
+            viewModel.showAddDialog(effectivePrefill)
+            handledPrefill = true
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -46,33 +62,49 @@ fun LogBookScreen(viewModel: LogBookViewModel) {
             }
         }
     ) { padding ->
-        if (activities.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentAlignment = Alignment.Center
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .padding(horizontal = 16.dp)
+        ) {
+            Spacer(modifier = Modifier.height(12.dp))
+            Text(
+                text = "Activity History",
+                style = MaterialTheme.typography.headlineSmall,
+                fontWeight = FontWeight.SemiBold
+            )
+            Text(
+                text = "Newest entries appear first",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = { viewModel.showAddDialog() },
+                modifier = Modifier.fillMaxWidth()
             ) {
-                Text(
-                    text = "No activities yet.\nTap + to add your first entry.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                Icon(Icons.Default.Add, contentDescription = null)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Add entry")
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
-                contentPadding = PaddingValues(16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(activities) { activity ->
-                    FarmActivityCard(
-                        activity = activity,
-                        onEdit = { viewModel.showEditDialog(it) },
-                        onDelete = { viewModel.deleteActivity(it) }
-                    )
+            Spacer(modifier = Modifier.height(16.dp))
+
+            if (activities.isEmpty()) {
+                EmptyLogBookState(onAddClick = { viewModel.showAddDialog() })
+            } else {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(vertical = 4.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    items(activities) { activity ->
+                        FarmActivityCard(
+                            activity = activity,
+                            onEdit = { viewModel.showEditDialog(it) },
+                            onDelete = { viewModel.deleteActivity(it) }
+                        )
+                    }
                 }
             }
         }
@@ -81,6 +113,7 @@ fun LogBookScreen(viewModel: LogBookViewModel) {
     if (showDialog) {
         ActivityDialog(
             activity = editingActivity,
+            draft = draftActivity,
             onDismiss = { viewModel.hideDialog() },
             onSave = { type, date, crop, field, note ->
                 viewModel.saveActivity(type, date, crop, field, note)
@@ -89,6 +122,7 @@ fun LogBookScreen(viewModel: LogBookViewModel) {
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FarmActivityCard(
     activity: FarmActivity,
@@ -99,7 +133,7 @@ fun FarmActivityCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
     ) {
         Column(
             modifier = Modifier
@@ -113,33 +147,39 @@ fun FarmActivityCard(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
+                        text = formatDate(activity.date),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
                         text = activity.activityType.displayName(),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.primary
                     )
 
-                    Spacer(modifier = Modifier.height(4.dp))
-
-                    Text(
-                        text = formatDate(activity.date),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-
-                    if (activity.crop.isNotEmpty()) {
+                    if (activity.crop.isNotEmpty() || activity.field.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = "Crop: ${activity.crop}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
-                    }
-
-                    if (activity.field.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Field: ${activity.field}",
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (activity.crop.isNotEmpty()) {
+                                AssistChip(
+                                    onClick = {},
+                                    label = { Text(activity.crop) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Info, contentDescription = null)
+                                    }
+                                )
+                            }
+                            if (activity.field.isNotEmpty()) {
+                                AssistChip(
+                                    onClick = {},
+                                    label = { Text(activity.field) },
+                                    leadingIcon = {
+                                        Icon(Icons.Default.Info, contentDescription = null)
+                                    }
+                                )
+                            }
+                        }
                     }
 
                     if (activity.note.isNotEmpty()) {
@@ -200,14 +240,21 @@ fun FarmActivityCard(
 @Composable
 fun ActivityDialog(
     activity: FarmActivity?,
+    draft: ActivityDraft?,
     onDismiss: () -> Unit,
     onSave: (ActivityType, String, String, String, String) -> Unit
 ) {
-    var selectedType by remember { mutableStateOf(activity?.activityType ?: ActivityType.PLANTED) }
-    var date by remember { mutableStateOf(activity?.date ?: LocalDate.now().toString()) }
-    var crop by remember { mutableStateOf(activity?.crop ?: "") }
-    var field by remember { mutableStateOf(activity?.field ?: "") }
-    var note by remember { mutableStateOf(activity?.note ?: "") }
+    val initialType = activity?.activityType ?: draft?.activityType ?: ActivityType.PLANTED
+    val initialDate = activity?.date ?: draft?.date ?: LocalDate.now().toString()
+    val initialCrop = activity?.crop ?: draft?.crop.orEmpty()
+    val initialField = activity?.field ?: draft?.field.orEmpty()
+    val initialNote = activity?.note ?: draft?.note.orEmpty()
+
+    var selectedType by remember { mutableStateOf(initialType) }
+    var date by remember { mutableStateOf(initialDate) }
+    var crop by remember { mutableStateOf(initialCrop) }
+    var field by remember { mutableStateOf(initialField) }
+    var note by remember { mutableStateOf(initialNote) }
     var expandedTypeMenu by remember { mutableStateOf(false) }
 
     AlertDialog(
@@ -318,5 +365,30 @@ private fun formatDate(dateString: String): String {
         date.format(DateTimeFormatter.ofPattern("MMM dd, yyyy"))
     } catch (e: Exception) {
         dateString
+    }
+}
+
+@Composable
+private fun EmptyLogBookState(onAddClick: () -> Unit) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = 24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Text(
+            text = "No entries yet",
+            style = MaterialTheme.typography.titleMedium
+        )
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Start by adding your first farm activity.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Button(onClick = onAddClick) {
+            Text("Add first entry")
+        }
     }
 }
