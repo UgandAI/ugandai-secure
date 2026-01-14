@@ -3,6 +3,8 @@ package com.donatienthorez.ugandai.chat.ui;
 import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Toast;
 import java.io.DataOutputStream;
 import java.io.BufferedReader;
@@ -20,16 +22,17 @@ public class SignupActivity extends AppCompatActivity {
 
     ActivitySignupBinding binding;
     DatabaseHelper databaseHelper;
+    private String selectedLocation = "";
 
     // Simulate an asynchronous network operation
-    public static CompletableFuture<String> performNetworkOperationUserRegisterAsync(String userName, String password) {
+    public static CompletableFuture<String> performNetworkOperationUserRegisterAsync(String userName, String password, String location) {
         return CompletableFuture.supplyAsync(() -> {
             // Perform network operation here
-            return userRegister(userName, password);
+            return userRegister(userName, password, location);
         });
     }
 
-    private static String userRegister(String userName, String password) {
+    private static String userRegister(String userName, String password, String location) {
         String userCreationSuccess = "Failed";
         try {
             // Step 1: Create a new user by sending a POST request to the /users/ endpoint
@@ -41,7 +44,7 @@ public class SignupActivity extends AppCompatActivity {
             conUser.setRequestProperty("Accept", "application/json");
             conUser.setDoOutput(true);
 
-            String jsonUserInputString = String.format("{\"username\": \"%s\", \"password\": \"%s\"}", userName, password);
+            String jsonUserInputString = String.format("{\"username\": \"%s\", \"password\": \"%s\", \"location\": \"%s\"}", userName, password, location);
 
             try (DataOutputStream out = new DataOutputStream(conUser.getOutputStream())) {
                 out.writeBytes(jsonUserInputString);
@@ -110,6 +113,26 @@ public class SignupActivity extends AppCompatActivity {
 
         databaseHelper = new DatabaseHelper(this);
 
+        // Setup location spinner
+        String[] locations = {"Select Location", "Buyanga", "Namutumba", "Mbale"};
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, locations);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        binding.signupLocation.setAdapter(adapter);
+
+        binding.signupLocation.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                if (position > 0) { // Skip "Select Location"
+                    selectedLocation = locations[position];
+                }
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                selectedLocation = "";
+            }
+        });
+
         binding.signupButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -117,12 +140,12 @@ public class SignupActivity extends AppCompatActivity {
                 String password = binding.signupPassword.getText().toString();
                 String confirmPassword = binding.signupConfirm.getText().toString();
 
-                if (email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty()) {
+                if (email.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || selectedLocation.isEmpty()) {
                     Toast.makeText(SignupActivity.this, "All fields are mandatory", Toast.LENGTH_SHORT).show();
                 } else {
                     if (password.equals(confirmPassword)) {
                         // Perform the async network operation
-                        CompletableFuture<String> future = performNetworkOperationUserRegisterAsync(email, password);
+                        CompletableFuture<String> future = performNetworkOperationUserRegisterAsync(email, password, selectedLocation);
 
                         future.thenAccept(registerStatus -> {
                             // This block is executed after the network operation is complete
