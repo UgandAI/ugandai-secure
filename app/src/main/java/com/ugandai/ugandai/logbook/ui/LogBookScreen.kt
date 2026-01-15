@@ -79,15 +79,6 @@ fun LogBookScreen(
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Spacer(modifier = Modifier.height(12.dp))
-            OutlinedButton(
-                onClick = { viewModel.showAddDialog() },
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text("Add entry")
-            }
             Spacer(modifier = Modifier.height(16.dp))
 
             if (activities.isEmpty()) {
