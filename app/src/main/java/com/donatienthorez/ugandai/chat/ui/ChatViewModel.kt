@@ -40,29 +40,9 @@ class ChatViewModel(
         }
     }
 
-    fun sendMessage(prompt: String, vectorStoreId: String) {
+    // ✅ CLEAN VERSION
+    fun sendMessage(prompt: String) {
         viewModelScope.launch {
-            // Create a user message from the prompt
-            val userMessage = Message(
-                text = prompt,
-                isFromUser = true, // Indicates this message is from the user
-                messageStatus = MessageStatus.Sending
-            )
-
-
-            val instructions = "Please use the vector store with ID $vectorStoreId to answer any questions related to the content of the files."
-            val systemMessage = Message(
-                text = instructions,
-                isFromUser = false,
-                messageStatus = MessageStatus.Sending
-            )
-
-
-            val conversation = Conversation(
-                listOf(userMessage, systemMessage)
-            )
-
-
             sendChatRequestUseCase.invoke(prompt)
         }
     }

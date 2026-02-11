@@ -3,6 +3,8 @@ package com.ugandai.ugandai.chat.data
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.UUID
+import com.donatienthorez.ugandai.chat.data.api.ProposedActivity
+
 
 class ConversationRepository {
 
@@ -66,7 +68,8 @@ data class Message(
     val id: String = UUID.randomUUID().toString(),
     val text: String,
     val isFromUser: Boolean,
-    val messageStatus: MessageStatus = MessageStatus.Sending
+    val messageStatus: MessageStatus = MessageStatus.Sending,
+    val proposedActivity: ProposedActivity? = null
 )
 
 sealed class MessageStatus {

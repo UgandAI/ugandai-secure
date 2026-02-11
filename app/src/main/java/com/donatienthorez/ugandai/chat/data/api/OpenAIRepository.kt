@@ -3,6 +3,7 @@ package com.ugandai.ugandai.chat.data.api
 import com.ugandai.ugandai.chat.data.Conversation
 import com.ugandai.ugandai.chat.data.Message
 import com.ugandai.ugandai.chat.data.MessageStatus
+import com.donatienthorez.ugandai.chat.data.api.ProposedActivity
 import java.io.BufferedReader
 import java.io.DataOutputStream
 import java.io.InputStreamReader
@@ -22,18 +23,12 @@ class OpenAIRepository(private val context: Context) {
     @Throws(NoChoiceAvailableException::class)
     suspend fun sendChatRequest(
         conversation: Conversation,
-        userInput: String // Dynamic user input
+        userInput: String
     ): Message {
-        val instructions = "- You are an assistant helping farmers in rural Uganda make better decisions about planting crops\n" +
-                "- Only refer to the information provided in the files; crops.json, buyangaWeather.json, mbaleWeather.json, namutumbaWeather.json\n"
 
-        var contentString: String
-
-        // Retrieve token from encrypted shared preferences
         val token = getTokenFromEncryptedPreferences(context)
 
-        // Execute network operation on IO thread
-        contentString = withContext(Dispatchers.IO) {
+        return withContext(Dispatchers.IO) {
             try {
                 val url = URL("http://ec2-54-85-226-52.compute-1.amazonaws.com:8000/chats")
                 val con = url.openConnection() as HttpURLConnection
@@ -42,14 +37,12 @@ class OpenAIRepository(private val context: Context) {
                 con.setRequestProperty("Content-Type", "application/json; utf-8")
                 con.setRequestProperty("Accept", "application/json")
 
-                // Include token in the request header if it's not null
                 token?.let {
                     con.setRequestProperty("Authorization", "Bearer $it")
                 }
 
                 con.doOutput = true
 
-                // Create the JSON input string with dynamic user input
                 val jsonInputString = """{"sender": "user", "content": "$userInput"}"""
                 DataOutputStream(con.outputStream).use { out ->
                     out.writeBytes(jsonInputString)
@@ -65,28 +58,48 @@ class OpenAIRepository(private val context: Context) {
 
                     val responseString = content.toString()
                     val jsonObject = JSONObject(responseString)
-                    jsonObject.getString("content") // Extract content from JSON response
+
+                    val contentText = jsonObject.getString("content")
+
+                    var proposedActivity: ProposedActivity? = null
+
+                    if (jsonObject.has("proposed_activity") && !jsonObject.isNull("proposed_activity")) {
+                        val activityObj = jsonObject.getJSONObject("proposed_activity")
+
+                        proposedActivity = ProposedActivity(
+                            activityType = activityObj.getString("activity_type"),
+                            crop = activityObj.getString("crop"),
+                            date = activityObj.getString("date"),
+                            note = activityObj.optString("note", null),
+                            confidence = activityObj.getDouble("confidence")
+                        )
+                    }
+
+                    Message(
+                        text = contentText,
+                        isFromUser = false,
+                        messageStatus = MessageStatus.Sent,
+                        proposedActivity = proposedActivity
+                    )
                 }
+
             } catch (e: Exception) {
                 e.printStackTrace()
-                "Error: ${e.message}" // Return error message in case of failure
+
+                Message(
+                    text = "Error: ${e.message}",
+                    isFromUser = false,
+                    messageStatus = MessageStatus.Error,
+                    proposedActivity = null
+                )
             }
         }
-
-        return Message(
-            text = contentString,
-            isFromUser = false, // Set this to false to indicate it's from the AI
-            messageStatus = MessageStatus.Sent
-        )
     }
 
-    // Method to retrieve token from Encrypted SharedPreferences
     private fun getTokenFromEncryptedPreferences(context: Context): String? {
         return try {
-            // Get the master key for encryption
             val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
 
-            // Create (or retrieve) EncryptedSharedPreferences object
             val sharedPreferences: SharedPreferences = EncryptedSharedPreferences.create(
                 "secure_prefs",
                 masterKeyAlias,
@@ -95,7 +108,6 @@ class OpenAIRepository(private val context: Context) {
                 EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
             )
 
-            // Retrieve the token securely
             sharedPreferences.getString("user_token", null)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -104,5 +116,4 @@ class OpenAIRepository(private val context: Context) {
     }
 }
 
-// Custom exception class for handling specific errors
 class NoChoiceAvailableException : Exception()

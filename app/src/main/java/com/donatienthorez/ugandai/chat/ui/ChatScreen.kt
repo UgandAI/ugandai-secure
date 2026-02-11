@@ -9,7 +9,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.selection.SelectionContainer
-import androidx.compose.ui.Modifier
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -19,11 +18,11 @@ import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LiveData
 import com.ugandai.ugandai.R
@@ -37,6 +36,7 @@ import kotlinx.coroutines.launch
 data class ChatScreenUiHandlers(
     val onSendMessage: (String) -> Unit = {},
     val onResendMessage: (Message) -> Unit = {},
+    val onAddToLogBook: (Message) -> Unit = {},   // ✅ Added
     val onNavigateToLogBook: () -> Unit = {}
 )
 
@@ -87,49 +87,42 @@ fun ChatScreen(
                 .padding(horizontal = 16.dp)
                 .padding(vertical = 16.dp)
         ) {
-            Box(
-                modifier = Modifier.weight(1f)
-            ) {
+            Box(modifier = Modifier.weight(1f)) {
                 conversationState?.let {
                     MessageList(
                         messagesList = it.list,
                         listState = listState,
-                        onResendMessage = uiHandlers.onResendMessage
+                        onResendMessage = uiHandlers.onResendMessage,
+                        onAddToLogBook = uiHandlers.onAddToLogBook   // ✅ Added
                     )
                 }
             }
+
             Row {
                 TextField(
                     value = inputValue,
                     onValueChange = { inputValue = it },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
-                    keyboardActions = KeyboardActions {
-                        sendMessage()
-                    },
+                    keyboardActions = KeyboardActions { sendMessage() },
                     modifier = Modifier.weight(1f),
                     colors = TextFieldDefaults.textFieldColors(
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
                     )
                 )
+
                 HorizontalSpacer(8.dp)
+
                 Button(
                     modifier = Modifier.height(56.dp),
                     onClick = { sendMessage() },
                     enabled = inputValue.isNotBlank() && isSendingMessageState != true,
                 ) {
                     if (isSendingMessageState == true) {
-                        Icon(
-                            imageVector = Icons.Default.Sync,
-                            contentDescription = "Sending"
-                        )
+                        Icon(Icons.Default.Sync, contentDescription = "Sending")
                     } else {
-                        Icon(
-                            imageVector = Icons.Default.Send,
-                            contentDescription = "Send"
-                        )
+                        Icon(Icons.Default.Send, contentDescription = "Send")
                     }
-
                 }
             }
         }
@@ -140,71 +133,66 @@ fun ChatScreen(
 fun MessageList(
     messagesList: List<Message>,
     listState: LazyListState,
-    onResendMessage: (Message) -> Unit
+    onResendMessage: (Message) -> Unit,
+    onAddToLogBook: (Message) -> Unit   // ✅ Added
 ) {
-    LazyColumn(
-        state = listState
-    ) {
+    LazyColumn(state = listState) {
         items(messagesList) { message ->
-            Row(
-                modifier = Modifier.fillMaxWidth()
-            ) {
+
+            Row(modifier = Modifier.fillMaxWidth()) {
+
                 if (message.isFromUser) {
-                    HorizontalSpacer(width = 16.dp)
-                    Box(
-                        modifier = Modifier.weight(weight = 1f)
-                    )
+                    HorizontalSpacer(16.dp)
+                    Box(modifier = Modifier.weight(1f))
                 }
+
                 SelectionContainer {
                     Text(
-                        text = removeMarkdownMarkers(message.text), // Use the cleaned text
+                        text = removeMarkdownMarkers(message.text),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.inverseSurface,
                         modifier = Modifier
-                            .weight(weight = 2f, fill = false)
+                            .weight(2f, fill = false)
                             .clip(RoundedCornerShape(8.dp))
                             .background(
-                                if (message.messageStatus == MessageStatus.Error) {
-                                    MaterialTheme.colorScheme.errorContainer
-                                } else {
-                                    if (message.isFromUser) {
+                                when {
+                                    message.messageStatus == MessageStatus.Error ->
+                                        MaterialTheme.colorScheme.errorContainer
+                                    message.isFromUser ->
                                         MaterialTheme.colorScheme.secondaryContainer
-                                    } else {
+                                    else ->
                                         MaterialTheme.colorScheme.primaryContainer
-                                    }
                                 }
                             )
                             .clickable(enabled = message.messageStatus == MessageStatus.Error) {
                                 onResendMessage(message)
                             }
-                            .padding(all = 8.dp)
+                            .padding(8.dp)
                     )
                 }
+
                 if (!message.isFromUser) {
-                    HorizontalSpacer(width = 16.dp)
-                    Box(
-                        modifier = Modifier.weight(weight = 1f)
-                    )
+                    HorizontalSpacer(16.dp)
+                    Box(modifier = Modifier.weight(1f))
                 }
             }
+
             if (message.messageStatus == MessageStatus.Sending) {
                 Text(
                     text = stringResource(R.string.chat_message_loading),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.primary
                 )
-                HorizontalSpacer(width = 32.dp)
+                HorizontalSpacer(32.dp)
             }
+
             if (message.messageStatus == MessageStatus.Error) {
                 Row(
-                    modifier = Modifier
-                        .clickable {
-                            onResendMessage(message)
-                        }
+                    modifier = Modifier.clickable {
+                        onResendMessage(message)
+                    }
                 ) {
-                    Box(
-                        modifier = Modifier.weight(weight = 1f)
-                    )
+                    Box(modifier = Modifier.weight(1f))
                     Text(
                         text = stringResource(R.string.chat_message_error),
                         style = MaterialTheme.typography.bodyMedium,
@@ -212,18 +200,32 @@ fun MessageList(
                     )
                 }
             }
-            VerticalSpacer(height = 8.dp)
+
+            // 🔥 ADD TO LOGBOOK BUTTON
+            if (!message.isFromUser && message.proposedActivity != null) {
+                Row(
+                    modifier = Modifier
+                        .padding(top = 4.dp)
+                        .clickable { onAddToLogBook(message) }   // ✅ Modified
+                ) {
+                    Text(
+                        text = "➕ Add to Logbook",
+                        color = MaterialTheme.colorScheme.primary,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
+            VerticalSpacer(8.dp)
         }
     }
 }
 
 fun removeMarkdownMarkers(text: String): String {
-    // Regex to match **bold** and *italic* markers
-    val boldRegex = "\\*\\*(.*?)\\*\\*".toRegex() // Matches text wrapped in ** **
-    val italicRegex = "\\*(.*?)\\*".toRegex()    // Matches text wrapped in * *
+    val boldRegex = "\\*\\*(.*?)\\*\\*".toRegex()
+    val italicRegex = "\\*(.*?)\\*".toRegex()
 
-    // Replace bold and italic markers with just the inner text
     return text
-        .replace(boldRegex, "$1") // Keeps only the content inside ** **
-        .replace(italicRegex, "$1") // Keeps only the content inside * *
+        .replace(boldRegex, "$1")
+        .replace(italicRegex, "$1")
 }
