@@ -46,18 +46,13 @@ fun LogBookScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Log Book") },
-                navigationIcon = {
-                    IconButton(onClick = { (context as? LogBookActivity)?.finish() }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
+        containerColor = androidx.compose.ui.graphics.Color(0xFFF5F5F5),
         floatingActionButton = {
-            FloatingActionButton(onClick = { viewModel.showAddDialog() }) {
+            FloatingActionButton(
+                onClick = { viewModel.showAddDialog() },
+                containerColor = androidx.compose.ui.graphics.Color(0xFF446F5D),
+                contentColor = androidx.compose.ui.graphics.Color.White
+            ) {
                 Icon(Icons.Default.Add, contentDescription = "Add activity")
             }
         }
@@ -68,16 +63,37 @@ fun LogBookScreen(
                 .padding(padding)
                 .padding(horizontal = 16.dp)
         ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                IconButton(onClick = { (context as? LogBookActivity)?.finish() }) {
+                    Icon(
+                        Icons.Default.ArrowBack,
+                        contentDescription = "Back",
+                        tint = androidx.compose.ui.graphics.Color(0xFF446F5D)
+                    )
+                }
+                Text(
+                    text = "Log Book",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = androidx.compose.ui.graphics.Color(0xFF1E1E1E)
+                )
+            }
             Spacer(modifier = Modifier.height(12.dp))
             Text(
                 text = "Activity History",
                 style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.SemiBold
+                fontWeight = FontWeight.SemiBold,
+                color = androidx.compose.ui.graphics.Color(0xFF1E1E1E)
             )
             Text(
                 text = "Newest entries appear first",
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                color = androidx.compose.ui.graphics.Color(0xFF666666)
             )
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -124,7 +140,10 @@ fun FarmActivityCard(
 
     Card(
         modifier = Modifier.fillMaxWidth(),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = androidx.compose.ui.graphics.Color.White
+        )
     ) {
         Column(
             modifier = Modifier
@@ -140,13 +159,13 @@ fun FarmActivityCard(
                     Text(
                         text = formatDate(activity.date),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = androidx.compose.ui.graphics.Color(0xFF666666)
                     )
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = activity.activityType.displayName(),
                         style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.primary
+                        color = androidx.compose.ui.graphics.Color(0xFF446F5D)
                     )
 
                     if (activity.crop.isNotEmpty() || activity.field.isNotEmpty()) {
@@ -155,19 +174,47 @@ fun FarmActivityCard(
                             if (activity.crop.isNotEmpty()) {
                                 AssistChip(
                                     onClick = {},
-                                    label = { Text(activity.crop) },
+                                    label = { 
+                                        Text(
+                                            activity.crop,
+                                            color = androidx.compose.ui.graphics.Color.White
+                                        )
+                                    },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Info, contentDescription = null)
-                                    }
+                                        Icon(
+                                            Icons.Default.Info,
+                                            contentDescription = null,
+                                            tint = androidx.compose.ui.graphics.Color.White
+                                        )
+                                    },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = androidx.compose.ui.graphics.Color(0xFF446F5D),
+                                        labelColor = androidx.compose.ui.graphics.Color.White,
+                                        leadingIconContentColor = androidx.compose.ui.graphics.Color.White
+                                    )
                                 )
                             }
                             if (activity.field.isNotEmpty()) {
                                 AssistChip(
                                     onClick = {},
-                                    label = { Text(activity.field) },
+                                    label = { 
+                                        Text(
+                                            activity.field,
+                                            color = androidx.compose.ui.graphics.Color.White
+                                        )
+                                    },
                                     leadingIcon = {
-                                        Icon(Icons.Default.Info, contentDescription = null)
-                                    }
+                                        Icon(
+                                            Icons.Default.Info,
+                                            contentDescription = null,
+                                            tint = androidx.compose.ui.graphics.Color.White
+                                        )
+                                    },
+                                    colors = AssistChipDefaults.assistChipColors(
+                                        containerColor = androidx.compose.ui.graphics.Color(0xFF446F5D),
+                                        labelColor = androidx.compose.ui.graphics.Color.White,
+                                        leadingIconContentColor = androidx.compose.ui.graphics.Color.White
+                                    )
                                 )
                             }
                         }
@@ -178,7 +225,7 @@ fun FarmActivityCard(
                         Text(
                             text = activity.note,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = androidx.compose.ui.graphics.Color(0xFF666666)
                         )
                     }
                 }
@@ -188,14 +235,14 @@ fun FarmActivityCard(
                         Icon(
                             Icons.Default.Edit,
                             contentDescription = "Edit",
-                            tint = MaterialTheme.colorScheme.primary
+                            tint = androidx.compose.ui.graphics.Color(0xFF446F5D)
                         )
                     }
                     IconButton(onClick = { showDeleteDialog = true }) {
                         Icon(
                             Icons.Default.Delete,
                             contentDescription = "Delete",
-                            tint = MaterialTheme.colorScheme.error
+                            tint = androidx.compose.ui.graphics.Color(0xFFD32F2F)
                         )
                     }
                 }
@@ -369,16 +416,23 @@ private fun EmptyLogBookState(onAddClick: () -> Unit) {
     ) {
         Text(
             text = "No entries yet",
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
+            color = androidx.compose.ui.graphics.Color(0xFF1E1E1E)
         )
         Spacer(modifier = Modifier.height(8.dp))
         Text(
             text = "Start by adding your first farm activity.",
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = androidx.compose.ui.graphics.Color(0xFF666666)
         )
         Spacer(modifier = Modifier.height(16.dp))
-        Button(onClick = onAddClick) {
+        Button(
+            onClick = onAddClick,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = androidx.compose.ui.graphics.Color(0xFF446F5D),
+                contentColor = androidx.compose.ui.graphics.Color.White
+            )
+        ) {
             Text("Add first entry")
         }
     }

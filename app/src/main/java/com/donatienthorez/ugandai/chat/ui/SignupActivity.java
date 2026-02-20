@@ -16,6 +16,7 @@ import java.util.concurrent.CompletableFuture;
 
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.ugandai.ugandai.R;
 import com.ugandai.ugandai.databinding.ActivitySignupBinding;
 
 public class SignupActivity extends AppCompatActivity {
@@ -108,6 +109,12 @@ public class SignupActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        
+        // Hide action bar
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
+        }
+        
         binding = ActivitySignupBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
 
@@ -115,8 +122,8 @@ public class SignupActivity extends AppCompatActivity {
 
         // Setup location spinner
         String[] locations = {"Select Location", "Buyanga", "Namutumba", "Mbale"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, android.R.layout.simple_spinner_item, locations);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.spinner_item, locations);
+        adapter.setDropDownViewResource(R.layout.spinner_dropdown_item);
         binding.signupLocation.setAdapter(adapter);
 
         binding.signupLocation.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {

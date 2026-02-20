@@ -39,6 +39,11 @@ public class LoginActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
+        // Hide action bar
+        if (getSupportActionBar() != null) {
+            getSupportActionBar().hide();
+        }
+
         Log.d(TAG, "LoginActivity created");
 
         binding = ActivityLoginBinding.inflate(getLayoutInflater());

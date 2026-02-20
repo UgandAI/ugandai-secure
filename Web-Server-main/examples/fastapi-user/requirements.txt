@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+openai
+tortoise-orm
+passlib
+bcrypt
+python-multipart
+PyJWT
+sqlalchemy

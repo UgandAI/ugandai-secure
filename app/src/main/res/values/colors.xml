@@ -12,4 +12,9 @@
     <color name="grey">#AAAAAA</color>
     <!-- Background color -->
     <color name="background">#F5F5F5</color>
+    <!-- Welcome Screen Theme Colors -->
+    <color name="welcome_cream">#F2E6C9</color>
+    <color name="welcome_gold">#E0C07A</color>
+    <color name="welcome_tan">#B8A67A</color>
+    <color name="welcome_dark_green">#1E2F23</color>
 </resources>

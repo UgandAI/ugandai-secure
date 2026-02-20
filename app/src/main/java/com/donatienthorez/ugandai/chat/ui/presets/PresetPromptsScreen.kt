@@ -123,23 +123,7 @@ fun PresetPromptsScreen(
         }
 
         Scaffold(
-            containerColor = Color.Transparent,
-            topBar = {
-                CenterAlignedTopAppBar(
-                    title = {
-                        Text(
-                            text = "How can I help you today?",
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 24.sp,
-                            letterSpacing = 0.8.sp,
-                            color = Color(0xFFF8F4E6)
-                        )
-                    },
-                    colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
-                        containerColor = Color.Transparent
-                    )
-                )
-            }
+            containerColor = Color.Transparent
         ) { paddingValues ->
 
             LazyVerticalGrid(

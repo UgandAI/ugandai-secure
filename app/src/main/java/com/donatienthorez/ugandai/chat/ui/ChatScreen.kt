@@ -1,6 +1,7 @@
 package com.ugandai.ugandai.chat.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -18,10 +19,12 @@ import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.LiveData
@@ -65,29 +68,45 @@ fun ChatScreen(
     }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Chat") },
-                actions = {
-                    IconButton(onClick = { uiHandlers.onNavigateToLogBook() }) {
-                        Icon(
-                            imageVector = Icons.Default.Book,
-                            contentDescription = "Log Book"
-                        )
-                    }
-                }
-            )
-        },
+        containerColor = Color(0xFFF5F5F5),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
     ) { paddingValues ->
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(paddingValues = paddingValues)
-                .padding(horizontal = 16.dp)
-                .padding(vertical = 16.dp)
         ) {
-            Box(modifier = Modifier.weight(1f)) {
+            // Top header with LogBook icon
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(Color.White)
+                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Chat",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
+                    color = Color(0xFF1E1E1E)
+                )
+                IconButton(
+                    onClick = { uiHandlers.onNavigateToLogBook() }
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Book,
+                        contentDescription = "Log Book",
+                        tint = Color(0xFF446F5D)
+                    )
+                }
+            }
+            
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(horizontal = 16.dp)
+            ) {
                 conversationState?.let {
                     MessageList(
                         messagesList = it.list,
@@ -98,17 +117,35 @@ fun ChatScreen(
                 }
             }
 
-            Row {
+            Row(
+                modifier = Modifier
+                    .padding(horizontal = 16.dp)
+                    .padding(top = 8.dp, bottom = 16.dp),
+                verticalAlignment = Alignment.Bottom
+            ) {
                 TextField(
                     value = inputValue,
                     onValueChange = { inputValue = it },
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
                     keyboardActions = KeyboardActions { sendMessage() },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(12.dp)),
                     colors = TextFieldDefaults.textFieldColors(
+                        containerColor = Color.White,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
-                    )
+                        textColor = Color(0xFF1E1E1E),
+                        cursorColor = Color(0xFF446F5D),
+                        placeholderColor = Color(0xFF999999)
+                    ),
+                    placeholder = {
+                        Text(
+                            text = "Type a message...",
+                            color = Color(0xFF999999)
+                        )
+                    },
+                    shape = RoundedCornerShape(12.dp)
                 )
 
                 HorizontalSpacer(8.dp)
@@ -117,6 +154,13 @@ fun ChatScreen(
                     modifier = Modifier.height(56.dp),
                     onClick = { sendMessage() },
                     enabled = inputValue.isNotBlank() && isSendingMessageState != true,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF446F5D),
+                        contentColor = Color.White,
+                        disabledContainerColor = Color(0xFFCCCCCC),
+                        disabledContentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     if (isSendingMessageState == true) {
                         Icon(Icons.Default.Sync, contentDescription = "Sending")
@@ -147,28 +191,33 @@ fun MessageList(
                 }
 
                 SelectionContainer {
-                    Text(
-                        text = removeMarkdownMarkers(message.text),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.inverseSurface,
-                        modifier = Modifier
-                            .weight(2f, fill = false)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(
-                                when {
-                                    message.messageStatus == MessageStatus.Error ->
-                                        MaterialTheme.colorScheme.errorContainer
-                                    message.isFromUser ->
-                                        MaterialTheme.colorScheme.secondaryContainer
-                                    else ->
-                                        MaterialTheme.colorScheme.primaryContainer
+                    Surface(
+                        modifier = Modifier.weight(2f, fill = false),
+                        shape = RoundedCornerShape(12.dp),
+                        color = when {
+                            message.messageStatus == MessageStatus.Error ->
+                                Color(0xFFFFCDD2)
+                            message.isFromUser ->
+                                Color(0xFF446F5D)
+                            else ->
+                                Color.White
+                        },
+                        shadowElevation = 4.dp,
+                        border = if (!message.isFromUser && message.messageStatus != MessageStatus.Error) {
+                            androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
+                        } else null
+                    ) {
+                        Text(
+                            text = removeMarkdownMarkers(message.text),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = if (message.isFromUser) Color.White else Color(0xFF1E1E1E),
+                            modifier = Modifier
+                                .clickable(enabled = message.messageStatus == MessageStatus.Error) {
+                                    onResendMessage(message)
                                 }
-                            )
-                            .clickable(enabled = message.messageStatus == MessageStatus.Error) {
-                                onResendMessage(message)
-                            }
-                            .padding(8.dp)
-                    )
+                                .padding(12.dp)
+                        )
+                    }
                 }
 
                 if (!message.isFromUser) {
@@ -180,8 +229,8 @@ fun MessageList(
             if (message.messageStatus == MessageStatus.Sending) {
                 Text(
                     text = stringResource(R.string.chat_message_loading),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color(0xFF666666)
                 )
                 HorizontalSpacer(32.dp)
             }
@@ -195,8 +244,8 @@ fun MessageList(
                     Box(modifier = Modifier.weight(1f))
                     Text(
                         text = stringResource(R.string.chat_message_error),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.error
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFFD32F2F)
                     )
                 }
             }
@@ -205,12 +254,15 @@ fun MessageList(
             if (!message.isFromUser && message.proposedActivity != null) {
                 Row(
                     modifier = Modifier
-                        .padding(top = 4.dp)
-                        .clickable { onAddToLogBook(message) }   // ✅ Modified
+                        .padding(top = 8.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFF446F5D))
+                        .clickable { onAddToLogBook(message) }
+                        .padding(horizontal = 12.dp, vertical = 8.dp)
                 ) {
                     Text(
                         text = "➕ Add to Logbook",
-                        color = MaterialTheme.colorScheme.primary,
+                        color = Color.White,
                         style = MaterialTheme.typography.bodyMedium
                     )
                 }
