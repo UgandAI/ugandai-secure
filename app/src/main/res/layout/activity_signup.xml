@@ -118,7 +118,6 @@
                 android:layout_height="56dp"
                 android:layout_marginTop="8dp"
                 android:background="@drawable/rounded_input"
-                android:padding="16dp"
                 android:popupBackground="#FFFFFF"
                 android:spinnerMode="dropdown"
                 android:prompt="@string/location_prompt" />
