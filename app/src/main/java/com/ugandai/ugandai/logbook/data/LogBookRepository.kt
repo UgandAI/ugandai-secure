@@ -21,23 +21,28 @@ class LogBookRepository(private val context: Context) {
 
     suspend fun loadActivities(userId: String) {
         withContext(Dispatchers.IO) {
-            val db = dbHelper.readableDatabase
-            val cursor = db.rawQuery(
-                "SELECT * FROM farm_activities WHERE user_id = ? ORDER BY date DESC, created_at DESC",
-                arrayOf(userId)
-            )
+            try {
+                val db = dbHelper.readableDatabase
+                val cursor = db.rawQuery(
+                    "SELECT * FROM farm_activities WHERE user_id = ? ORDER BY date DESC, created_at DESC",
+                    arrayOf(userId)
+                )
 
-            val activitiesList = mutableListOf<FarmActivity>()
+                val activitiesList = mutableListOf<FarmActivity>()
 
-            if (cursor.moveToFirst()) {
-                do {
-                    val activity = cursorToFarmActivity(cursor)
-                    activitiesList.add(activity)
-                } while (cursor.moveToNext())
+                if (cursor.moveToFirst()) {
+                    do {
+                        val activity = cursorToFarmActivity(cursor)
+                        activitiesList.add(activity)
+                    } while (cursor.moveToNext())
+                }
+
+                cursor.close()
+                _activities.value = activitiesList
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _activities.value = emptyList()
             }
-
-            cursor.close()
-            _activities.value = activitiesList
         }
     }
 
@@ -124,14 +129,14 @@ class LogBookRepository(private val context: Context) {
     @SuppressLint("Range")
     private fun cursorToFarmActivity(cursor: android.database.Cursor): FarmActivity {
         return FarmActivity(
-            id = cursor.getLong(cursor.getColumnIndex("id")),
-            userId = cursor.getString(cursor.getColumnIndex("user_id")),
-            activityType = ActivityType.valueOf(cursor.getString(cursor.getColumnIndex("activity_type"))),
-            date = cursor.getString(cursor.getColumnIndex("date")),
-            crop = cursor.getString(cursor.getColumnIndex("crop")) ?: "",
-            field = cursor.getString(cursor.getColumnIndex("field")) ?: "",
-            note = cursor.getString(cursor.getColumnIndex("note")) ?: "",
-            createdAt = cursor.getLong(cursor.getColumnIndex("created_at"))
+            id = cursor.getLong(cursor.getColumnIndexOrThrow("id")),
+            userId = cursor.getString(cursor.getColumnIndexOrThrow("user_id")) ?: "",
+            activityType = ActivityType.valueOf(cursor.getString(cursor.getColumnIndexOrThrow("activity_type"))),
+            date = cursor.getString(cursor.getColumnIndexOrThrow("date")) ?: "",
+            crop = cursor.getString(cursor.getColumnIndexOrThrow("crop")) ?: "",
+            field = cursor.getString(cursor.getColumnIndexOrThrow("field")) ?: "",
+            note = cursor.getString(cursor.getColumnIndexOrThrow("note")) ?: "",
+            createdAt = cursor.getLong(cursor.getColumnIndexOrThrow("created_at"))
         )
     }
 }

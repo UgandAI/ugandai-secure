@@ -31,9 +31,11 @@ public class LoginActivity extends AppCompatActivity {
     private static final String PREFERENCES_FILE = "secure_prefs";
     private static final String TOKEN_KEY = "user_token";
     private static final String USERNAME_KEY = "username";
+    private static final String FIRST_LOGIN_PREFIX = "is_first_login_";
 
     private ActivityLoginBinding binding;
     private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private String currentUsername = "";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -65,6 +67,7 @@ public class LoginActivity extends AppCompatActivity {
             return;
         }
 
+        currentUsername = email;
         binding.loginButton.setEnabled(false);
         binding.loginButton.setText("LOADING...");
 
@@ -79,10 +82,26 @@ public class LoginActivity extends AppCompatActivity {
 
                 if ("Success".equals(result)) {
                     Log.d(TAG, "Login success → navigating");
-                    startActivity(new Intent(
-                            LoginActivity.this,
-                            com.donatienthorez.ugandai.chat.ui.presets.PresetPromptsActivity.class
-                    ));
+                    
+                    // Check if this is the first login for this user
+                    boolean isFirstLogin = isFirstLoginForUser(currentUsername);
+                    
+                    if (isFirstLogin) {
+                        // Mark as no longer first login for this user
+                        markFirstLoginCompleteForUser(currentUsername);
+                        // Navigate to preset prompts
+                        startActivity(new Intent(
+                                LoginActivity.this,
+                                com.donatienthorez.ugandai.chat.ui.presets.PresetPromptsActivity.class
+                        ));
+                    } else {
+                        // Navigate directly to chat
+                        startActivity(new Intent(
+                                LoginActivity.this,
+                                com.donatienthorez.ugandai.chat.ui.ChatActivity.class
+                        ));
+                    }
+                    finish();
                 } else {
                     Toast.makeText(LoginActivity.this, result, Toast.LENGTH_SHORT).show();
                 }
@@ -186,6 +205,42 @@ public class LoginActivity extends AppCompatActivity {
             prefs.edit().putString(USERNAME_KEY, username).apply();
         } catch (Exception e) {
             Log.e(TAG, "Error saving username", e);
+        }
+    }
+
+    private boolean isFirstLoginForUser(String username) {
+        try {
+            String masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
+            SharedPreferences prefs = EncryptedSharedPreferences.create(
+                    PREFERENCES_FILE,
+                    masterKey,
+                    this,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+            // Returns true if user's first_login key doesn't exist (default)
+            String userFirstLoginKey = FIRST_LOGIN_PREFIX + username;
+            return prefs.getBoolean(userFirstLoginKey, true);
+        } catch (Exception e) {
+            Log.e(TAG, "Error checking first login", e);
+            return true; // Default to showing presets if error
+        }
+    }
+
+    private void markFirstLoginCompleteForUser(String username) {
+        try {
+            String masterKey = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC);
+            SharedPreferences prefs = EncryptedSharedPreferences.create(
+                    PREFERENCES_FILE,
+                    masterKey,
+                    this,
+                    EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+                    EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+            );
+            String userFirstLoginKey = FIRST_LOGIN_PREFIX + username;
+            prefs.edit().putBoolean(userFirstLoginKey, false).apply();
+        } catch (Exception e) {
+            Log.e(TAG, "Error marking first login complete", e);
         }
     }
 

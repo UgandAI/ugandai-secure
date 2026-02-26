@@ -20,7 +20,7 @@ val chatModule = module {
     // Provide OpenAIRepository with context
     single { OpenAIRepository(context = androidContext()) }
 
-    single { ConversationRepository() }
+    single { ConversationRepository(context = androidContext()) }
 
     single { SendChatRequestUseCase(openAIRepository = get(), conversationRepository = get()) }
     single { ResendMessageUseCase(openAIRepository = get(), conversationRepository = get()) }

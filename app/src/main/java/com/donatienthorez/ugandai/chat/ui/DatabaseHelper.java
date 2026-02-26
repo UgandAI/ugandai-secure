@@ -13,7 +13,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     public static final String databaseName = "SignLog.db";
 
     public DatabaseHelper(@Nullable Context context) {
-        super(context, "SignLog.db", null, 2);
+        super(context, "SignLog.db", null, 4);
     }
 
     @Override
@@ -27,6 +27,18 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 "crop TEXT, " +
                 "field TEXT, " +
                 "note TEXT, " +
+                "created_at INTEGER NOT NULL)");
+        MyDatabase.execSQL("create Table messages(" +
+                "id TEXT PRIMARY KEY, " +
+                "username TEXT NOT NULL, " +
+                "text TEXT NOT NULL, " +
+                "is_from_user INTEGER NOT NULL, " +
+                "message_status TEXT NOT NULL, " +
+                "proposed_activity_type TEXT, " +
+                "proposed_date TEXT, " +
+                "proposed_crop TEXT, " +
+                "proposed_note TEXT, " +
+                "proposed_confidence REAL, " +
                 "created_at INTEGER NOT NULL)");
     }
 
@@ -42,6 +54,24 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     "field TEXT, " +
                     "note TEXT, " +
                     "created_at INTEGER NOT NULL)");
+        }
+        if (oldVersion < 3) {
+            MyDB.execSQL("create Table messages(" +
+                    "id TEXT PRIMARY KEY, " +
+                    "username TEXT NOT NULL, " +
+                    "text TEXT NOT NULL, " +
+                    "is_from_user INTEGER NOT NULL, " +
+                    "message_status TEXT NOT NULL, " +
+                    "proposed_activity_type TEXT, " +
+                    "proposed_date TEXT, " +
+                    "proposed_crop TEXT, " +
+                    "proposed_note TEXT, " +
+                    "proposed_confidence REAL, " +
+                    "created_at INTEGER NOT NULL)");
+        }
+        if (oldVersion < 4) {
+            MyDB.execSQL("ALTER TABLE messages ADD COLUMN username TEXT DEFAULT ''");
+            MyDB.execSQL("ALTER TABLE messages ADD COLUMN proposed_confidence REAL DEFAULT 0.0");
         }
     }
 
