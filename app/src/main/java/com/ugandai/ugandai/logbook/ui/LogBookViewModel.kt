@@ -1,6 +1,7 @@
 package com.ugandai.ugandai.logbook.ui
 
 import android.content.Context
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import androidx.security.crypto.EncryptedSharedPreferences
@@ -67,10 +68,17 @@ class LogBookViewModel(
     ) {
         viewModelScope.launch {
             val userId = getCurrentUserId()
+            Log.d("LogBookViewModel", "saveActivity called, userId: $userId")
+            if (userId.isEmpty()) {
+                Log.e("LogBookViewModel", "userId is empty, cannot save")
+                return@launch
+            }
+            
             val activity = _editingActivity.value
 
             if (activity != null) {
                 // Update existing activity
+                Log.d("LogBookViewModel", "Updating existing activity: ${activity.id}")
                 val updated = activity.copy(
                     activityType = activityType,
                     date = date,
@@ -78,9 +86,11 @@ class LogBookViewModel(
                     field = field,
                     note = note
                 )
-                repository.updateActivity(updated)
+                val result = repository.updateActivity(updated)
+                Log.d("LogBookViewModel", "Update result: ${result.isSuccess}")
             } else {
                 // Create new activity
+                Log.d("LogBookViewModel", "Creating new activity")
                 val newActivity = FarmActivity(
                     userId = userId,
                     activityType = activityType,
@@ -89,8 +99,17 @@ class LogBookViewModel(
                     field = field,
                     note = note
                 )
-                repository.saveActivity(newActivity)
+                Log.d("LogBookViewModel", "Calling repository.saveActivity...")
+                val result = repository.saveActivity(newActivity)
+                Log.d("LogBookViewModel", "Save result: success=${result.isSuccess}, failure=${result.isFailure}")
+                result.onSuccess { id ->
+                    Log.d("LogBookViewModel", "Save succeeded with id: $id")
+                }
+                result.onFailure { error ->
+                    Log.e("LogBookViewModel", "Save failed with error: ${error.message}", error)
+                }
             }
+            Log.d("LogBookViewModel", "Activity operation completed, hiding dialog")
             hideDialog()
         }
     }

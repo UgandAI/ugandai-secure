@@ -3,6 +3,7 @@ package com.ugandai.ugandai.logbook.data
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
+import android.util.Log
 import com.donatienthorez.ugandai.chat.ui.DatabaseHelper
 import com.ugandai.ugandai.logbook.domain.model.ActivityType
 import com.ugandai.ugandai.logbook.domain.model.FarmActivity
@@ -20,35 +21,44 @@ class LogBookRepository(private val context: Context) {
     val activities: StateFlow<List<FarmActivity>> = _activities.asStateFlow()
 
     suspend fun loadActivities(userId: String) {
-        withContext(Dispatchers.IO) {
+        val activitiesList = withContext(Dispatchers.IO) {
             try {
+                Log.d("LogBookRepository", "loadActivities called for userId: $userId")
                 val db = dbHelper.readableDatabase
                 val cursor = db.rawQuery(
                     "SELECT * FROM farm_activities WHERE user_id = ? ORDER BY date DESC, created_at DESC",
                     arrayOf(userId)
                 )
 
-                val activitiesList = mutableListOf<FarmActivity>()
+                val list = mutableListOf<FarmActivity>()
 
                 if (cursor.moveToFirst()) {
                     do {
                         val activity = cursorToFarmActivity(cursor)
-                        activitiesList.add(activity)
+                        list.add(activity)
                     } while (cursor.moveToNext())
                 }
 
                 cursor.close()
-                _activities.value = activitiesList
+                Log.d("LogBookRepository", "Loaded ${list.size} activities")
+                list
             } catch (e: Exception) {
+                Log.e("LogBookRepository", "Error loading activities", e)
                 e.printStackTrace()
-                _activities.value = emptyList()
+                emptyList()
             }
+        }
+        // Update StateFlow on Main dispatcher
+        withContext(Dispatchers.Main) {
+            _activities.value = activitiesList
+            Log.d("LogBookRepository", "StateFlow updated with ${activitiesList.size} activities")
         }
     }
 
     suspend fun saveActivity(activity: FarmActivity): Result<Long> {
         return withContext(Dispatchers.IO) {
             try {
+                Log.d("LogBookRepository", "saveActivity called: userId=${activity.userId}, type=${activity.activityType}, date=${activity.date}")
                 val db = dbHelper.writableDatabase
                 val values = ContentValues().apply {
                     put("user_id", activity.userId)
@@ -61,14 +71,19 @@ class LogBookRepository(private val context: Context) {
                 }
 
                 val id = db.insert("farm_activities", null, values)
+                Log.d("LogBookRepository", "Insert returned id: $id")
                 if (id != -1L) {
                     loadActivities(activity.userId)
-                    Result.success(id)
+                    Log.d("LogBookRepository", "Save successful, returning success")
+                    return@withContext Result.success(id)
                 } else {
-                    Result.failure(Exception("Failed to save activity"))
+                    Log.e("LogBookRepository", "Insert failed, id was -1")
+                    return@withContext Result.failure(Exception("Failed to save activity"))
                 }
             } catch (e: Exception) {
-                Result.failure(e)
+                Log.e("LogBookRepository", "Exception during save", e)
+                e.printStackTrace()
+                return@withContext Result.failure(e)
             }
         }
     }
@@ -94,12 +109,13 @@ class LogBookRepository(private val context: Context) {
 
                 if (rowsAffected > 0) {
                     loadActivities(activity.userId)
-                    Result.success(Unit)
+                    return@withContext Result.success(Unit)
                 } else {
-                    Result.failure(Exception("Failed to update activity"))
+                    return@withContext Result.failure(Exception("Failed to update activity"))
                 }
             } catch (e: Exception) {
-                Result.failure(e)
+                e.printStackTrace()
+                return@withContext Result.failure(e)
             }
         }
     }
@@ -116,12 +132,13 @@ class LogBookRepository(private val context: Context) {
 
                 if (rowsDeleted > 0) {
                     loadActivities(userId)
-                    Result.success(Unit)
+                    return@withContext Result.success(Unit)
                 } else {
-                    Result.failure(Exception("Failed to delete activity"))
+                    return@withContext Result.failure(Exception("Failed to delete activity"))
                 }
             } catch (e: Exception) {
-                Result.failure(e)
+                e.printStackTrace()
+                return@withContext Result.failure(e)
             }
         }
     }

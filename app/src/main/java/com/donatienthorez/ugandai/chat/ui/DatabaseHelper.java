@@ -69,10 +69,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                     "proposed_confidence REAL, " +
                     "created_at INTEGER NOT NULL)");
         }
-        if (oldVersion < 4) {
-            MyDB.execSQL("ALTER TABLE messages ADD COLUMN username TEXT DEFAULT ''");
-            MyDB.execSQL("ALTER TABLE messages ADD COLUMN proposed_confidence REAL DEFAULT 0.0");
-        }
+        // Version 4: username and proposed_confidence already exist in version 3 table creation
+        // No additional columns needed
     }
 
     public Boolean insertData(String email, String password){
