@@ -4,6 +4,7 @@ import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.*
@@ -22,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.ugandai.ugandai.R
@@ -50,25 +52,29 @@ fun WelcomeScreen(
         )
     )
 
+    // ✨ Pulsing glow animation for circle
+    val pulseAlpha by infiniteTransition.animateFloat(
+        initialValue = 0.4f,
+        targetValue = 0.8f,
+        animationSpec = infiniteRepeatable(
+            animation = tween(2000, easing = FastOutSlowInEasing),
+            repeatMode = RepeatMode.Reverse
+        )
+    )
+
     Box(modifier = Modifier.fillMaxSize()) {
 
-        // 🌌 Background
-        Image(
-            painter = painterResource(id = R.drawable.welcome_bg),
-            contentDescription = null,
-            modifier = Modifier.fillMaxSize(),
-            contentScale = ContentScale.Crop
-        )
-
-        // 🌑 Cinematic gradient overlay
+        // 🌌 Uniform Background Gradient
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            Color.Transparent,
-                            Color.Black.copy(alpha = 0.65f)
+                            Color(0xFF0F241C),
+                            Color(0xFF1A3A2F),
+                            Color(0xFF1E4A38),
+                            Color(0xFF2D5A45)
                         )
                     )
                 )
@@ -86,7 +92,7 @@ fun WelcomeScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(horizontal = 28.dp, vertical = 48.dp),
+                    .padding(horizontal = 28.dp, vertical = 60.dp),
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
@@ -94,7 +100,7 @@ fun WelcomeScreen(
                 // 🔝 TOP SECTION
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(80.dp))
 
                     // ✨ Glowing circle behind logo
                     Box(
@@ -104,12 +110,13 @@ fun WelcomeScreen(
                             .background(
                                 Brush.radialGradient(
                                     colors = listOf(
-                                        Color(0xFF2E4B3C).copy(alpha = 0.6f),
+                                        Color(0xFF2E4B3C).copy(alpha = pulseAlpha),
                                         Color.Transparent
                                     )
                                 ),
                                 shape = CircleShape
                             )
+                            .border(2.dp, Color(0xFFE0C07A), CircleShape)
                     ) {
 
                         Image(
@@ -122,7 +129,7 @@ fun WelcomeScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(28.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
                         text = "UgandAI",
@@ -150,23 +157,24 @@ fun WelcomeScreen(
                         onClick = onLoginClick
                     )
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Spacer(modifier = Modifier.height(12.dp))
 
                     GlassButton(
                         text = "Sign up with Email",
                         backgroundColor = Color(0xFF1E2F23).copy(alpha = 0.9f),
-                        textColor = Color(0xFFE0C07A),
+                        textColor = Color.White,
                         onClick = onEmailSignupClick
                     )
-
-                    Spacer(modifier = Modifier.height(20.dp))
-
-                    Text(
-                        text = "By continuing you agree to the Terms of Service and Privacy Policy.",
-                        fontSize = 12.sp,
-                        color = Color(0xFFB8A67A)
-                    )
                 }
+
+                // 📋 PRIVACY TEXT - BOTTOM OF SCREEN
+                Text(
+                    text = "By continuing you agree to the Terms of Service and Privacy Policy.",
+                    fontSize = 10.sp,
+                    color = Color(0xFFD0D0D0),
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
             }
         }
     }

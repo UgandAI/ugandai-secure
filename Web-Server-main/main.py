@@ -4,6 +4,7 @@ import os
 from openai import OpenAI, AssistantEventHandler
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel
 from datetime import datetime
 import uuid
@@ -253,6 +254,92 @@ def get_chat(messageId: str):
         if chat.messageId == messageId:
             return chat
     raise HTTPException(status_code=404, detail="Message not found")
+
+# Privacy Policy Endpoint
+@app.get("/privacy-policy", response_class=HTMLResponse)
+def get_privacy_policy():
+    """Serve the privacy policy page."""
+    return """
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>UgandAI Privacy Policy</title>
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                line-height: 1.6;
+                color: #333;
+                max-width: 900px;
+                margin: 0 auto;
+                padding: 20px;
+                background-color: #f4f4f4;
+            }
+            .container {
+                background-color: #fff;
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            }
+            h1 {
+                color: #2c3e50;
+                border-bottom: 3px solid #3498db;
+                padding-bottom: 10px;
+            }
+            h2 {
+                color: #34495e;
+                margin-top: 25px;
+            }
+            .last-updated {
+                color: #7f8c8d;
+                font-style: italic;
+                margin-bottom: 20px;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>UgandAI Privacy Policy</h1>
+            <p class="last-updated">Last Updated: April 2026</p>
+
+            <h2>1. Introduction</h2>
+            <p>UgandAI ("we", "our", or "us") operates the UgandAI mobile application. This page informs you of our policies regarding the collection, use, and disclosure of personal data when you use our service and the choices you have associated with that data.</p>
+
+            <h2>2. Information Collection and Use</h2>
+            <p>We collect several different types of information for various purposes to provide and improve our service to you:</p>
+            <ul>
+                <li><strong>Account Information:</strong> Username and email address for authentication purposes</li>
+                <li><strong>Location Data:</strong> Your selected location (Buyanga, Namutumba, or Mbale) for service personalization</li>
+                <li><strong>Chat Data:</strong> Messages you send through our chat service for communication and service improvement</li>
+                <li><strong>Usage Data:</strong> Information about how you interact with our service</li>
+            </ul>
+
+            <h2>3. Use of Data</h2>
+            <p>UgandAI uses the collected data for various purposes:</p>
+            <ul>
+                <li>To provide and maintain our service</li>
+                <li>To notify you about changes to our service</li>
+                <li>To provide customer support</li>
+                <li>To monitor the usage of our service</li>
+                <li>To detect and prevent fraud and security issues</li>
+            </ul>
+
+            <h2>4. Security of Data</h2>
+            <p>The security of your data is important to us but remember that no method of transmission over the Internet is 100% secure. While we strive to use commercially acceptable means to protect your personal data, we cannot guarantee its absolute security.</p>
+
+            <h2>5. Changes to This Privacy Policy</h2>
+            <p>We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new Privacy Policy on this page and updating the "Last Updated" date at the top of this Privacy Policy.</p>
+
+            <h2>6. Contact Us</h2>
+            <p>If you have any questions about this Privacy Policy, please contact us:</p>
+            <ul>
+                <li>By email: support@ugandai.com</li>
+            </ul>
+        </div>
+    </body>
+    </html>
+    """
 
 # Items Endpoint (Example secured endpoint)
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")

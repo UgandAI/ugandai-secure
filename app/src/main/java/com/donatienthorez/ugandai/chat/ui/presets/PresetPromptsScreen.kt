@@ -11,9 +11,11 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Agriculture
-import androidx.compose.material.icons.filled.Eco
-import androidx.compose.material.icons.filled.Schedule
+import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.LocalHospital
+import androidx.compose.material.icons.filled.WaterDrop
 import androidx.compose.material.icons.filled.WbSunny
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -41,20 +43,28 @@ fun PresetPromptsScreen(
 
     val prompts = listOf(
         PresetPrompt(
-            "What crops should I plant this season in Mbale region?",
-            Icons.Default.Agriculture
-        ),
-        PresetPrompt(
-            "How do I prepare my soil for maize planting?",
-            Icons.Default.Eco
-        ),
-        PresetPrompt(
-            "What are the best practices for coffee farming in Uganda?",
+            "What crops should I plant this week based on the current weather in my area?",
             Icons.Default.WbSunny
         ),
         PresetPrompt(
-            "Help me plan my planting schedule based on current weather",
-            Icons.Default.Schedule
+            "I'm planting maize next week, how do I prepare my land step by step?",
+            Icons.Default.Agriculture
+        ),
+        PresetPrompt(
+            "My coffee leaves are turning yellow, what is causing it and how can I fix it?",
+            Icons.Default.LocalHospital
+        ),
+        PresetPrompt(
+            "When should I plant, fertilize, and harvest maize this season?",
+            Icons.Default.DateRange
+        ),
+        PresetPrompt(
+            "I have 2 acres and limited rainfall, what crops will give me the best yield?",
+            Icons.Default.WaterDrop
+        ),
+        PresetPrompt(
+            "What farm activities should I be doing this month for my crops?",
+            Icons.Default.CheckCircle
         )
     )
 
@@ -126,15 +136,38 @@ fun PresetPromptsScreen(
             containerColor = Color.Transparent
         ) { paddingValues ->
 
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(paddingValues)
-                    .padding(horizontal = 22.dp, vertical = 18.dp),
-                horizontalArrangement = Arrangement.spacedBy(24.dp),
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                    .verticalScroll(rememberScrollState())
             ) {
+                // Header Section
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 22.dp, vertical = 20.dp)
+                ) {
+                    Text(
+                        text = "Get Started with Some Examples:",
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 24.sp,
+                        letterSpacing = 0.5.sp,
+                        color = Color(0xFFF8F4E6),
+                        lineHeight = 28.sp
+                    )
+                }
+
+                // Prompts Grid
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 22.dp, vertical = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
+                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                    userScrollEnabled = false
+                ) {
                 items(prompts) { prompt ->
 
                     val interactionSource = remember { MutableInteractionSource() }
@@ -152,7 +185,7 @@ fun PresetPromptsScreen(
                     Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(185.dp)
+                            .height(220.dp)
                             .scale(scale)
                             .clickable(
                                 interactionSource = interactionSource,
@@ -160,10 +193,11 @@ fun PresetPromptsScreen(
                             ) {
                                 onPromptSelected(prompt.text)
                             },
-                        shape = RoundedCornerShape(30.dp),
+                        shape = RoundedCornerShape(20.dp),
                         colors = CardDefaults.cardColors(
-                            containerColor = Color.White.copy(alpha = 0.07f)
-                        )
+                            containerColor = Color.White.copy(alpha = 0.08f)
+                        ),
+                        border = BorderStroke(1.dp, Color.White.copy(alpha = 0.1f))
                     ) {
 
                         Box(
@@ -172,43 +206,47 @@ fun PresetPromptsScreen(
                                 .background(
                                     Brush.radialGradient(
                                         colors = listOf(
-                                            Color.White.copy(alpha = 0.06f),
+                                            Color.White.copy(alpha = 0.08f),
                                             Color.Transparent
                                         ),
                                         radius = 700f
                                     )
                                 )
-                                .padding(28.dp),
+                                .padding(20.dp),
                             contentAlignment = Alignment.Center
                         ) {
 
                             Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
+                                modifier = Modifier.fillMaxSize(),
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                verticalArrangement = Arrangement.Center
                             ) {
 
                                 Icon(
                                     imageVector = prompt.icon,
                                     contentDescription = null,
-                                    modifier = Modifier.size(46.dp),
+                                    modifier = Modifier.size(42.dp),
                                     tint = Color(0xFFE0C07A)
                                 )
 
-                                Spacer(modifier = Modifier.height(20.dp))
+                                Spacer(modifier = Modifier.height(14.dp))
 
                                 Text(
                                     text = prompt.text,
                                     fontWeight = FontWeight.SemiBold,
-                                    fontSize = 16.sp,
-                                    letterSpacing = 0.4.sp,
+                                    fontSize = 14.sp,
+                                    lineHeight = 18.sp,
+                                    letterSpacing = 0.3.sp,
                                     textAlign = TextAlign.Center,
                                     color = Color(0xFFF8F4E6),
-                                    maxLines = 3
+                                    modifier = Modifier.fillMaxWidth()
                                 )
                             }
                         }
                     }
                 }
             }
-        }
-    }
-}
+        }     // Close Column
+    }       // Close Scaffold
+}         // Close Box
+}         // Close fun PresetPromptsScreen
