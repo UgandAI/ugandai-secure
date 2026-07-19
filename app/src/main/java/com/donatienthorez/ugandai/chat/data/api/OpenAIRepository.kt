@@ -17,6 +17,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
+import com.ugandai.ugandai.utils.NetworkConfig
 
 class OpenAIRepository(private val context: Context) {
 
@@ -25,12 +26,87 @@ class OpenAIRepository(private val context: Context) {
         conversation: Conversation,
         userInput: String
     ): Message {
+        if (NetworkConfig.USE_MOCK_SERVER) {
+            kotlinx.coroutines.delay(1000) // Simulate network latency
+
+            val lowerInput = userInput.lowercase()
+            val proposed = when {
+                lowerInput.contains("plant") || lowerInput.contains("sow") -> {
+                    ProposedActivity(
+                        activityType = "PLANTED",
+                        crop = if (lowerInput.contains("maize")) "maize" else if (lowerInput.contains("bean")) "beans" else "coffee",
+                        date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()),
+                        note = "Planted crop via mock assistant suggestion",
+                        confidence = 0.95
+                    )
+                }
+                lowerInput.contains("weed") -> {
+                    ProposedActivity(
+                        activityType = "WEEDED",
+                        crop = "maize",
+                        date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()),
+                        note = "Weeded fields",
+                        confidence = 0.90
+                    )
+                }
+                lowerInput.contains("fertilize") -> {
+                    ProposedActivity(
+                        activityType = "FERTILIZED",
+                        crop = "maize",
+                        date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()),
+                        note = "Fertilized soil",
+                        confidence = 0.92
+                    )
+                }
+                lowerInput.contains("spray") -> {
+                    ProposedActivity(
+                        activityType = "SPRAYED",
+                        crop = "beans",
+                        date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()),
+                        note = "Sprayed crop with organic pest control",
+                        confidence = 0.88
+                    )
+                }
+                lowerInput.contains("harvest") -> {
+                    ProposedActivity(
+                        activityType = "HARVESTED",
+                        crop = "maize",
+                        date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()),
+                        note = "Harvested yield",
+                        confidence = 0.97
+                    )
+                }
+                lowerInput.contains("water") -> {
+                    ProposedActivity(
+                        activityType = "WATERED",
+                        crop = "coffee",
+                        date = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.getDefault()).format(java.util.Date()),
+                        note = "Irrigated field",
+                        confidence = 0.94
+                    )
+                }
+                else -> null
+            }
+
+            val responseText = if (proposed != null) {
+                "I detected that you are performing a farm activity. I suggest logging it: **${proposed.activityType.lowercase().replaceFirstChar { it.uppercase() }}** **${proposed.crop}** on **${proposed.date}**. You can add it to your logbook below!"
+            } else {
+                "Hello farmer! I am your AI assistant running in mock mode. You can ask me about planting, weeding, fertilizing, spraying, watering, or harvesting crops to test the logbook entry suggestions."
+            }
+
+            return Message(
+                text = responseText,
+                isFromUser = false,
+                messageStatus = MessageStatus.Sent,
+                proposedActivity = proposed
+            )
+        }
 
         val token = getTokenFromEncryptedPreferences(context)
 
         return withContext(Dispatchers.IO) {
             try {
-                val url = URL("http://ec2-54-85-226-52.compute-1.amazonaws.com:8000/chats")
+                val url = URL("${NetworkConfig.BASE_URL}/chats")
                 val con = url.openConnection() as HttpURLConnection
 
                 con.requestMethod = "POST"

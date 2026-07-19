@@ -1,11 +1,10 @@
 package com.ugandai.ugandai.logbook.data
 
-import android.annotation.SuppressLint
-import android.content.ContentValues
 import android.content.Context
 import android.util.Log
-import com.donatienthorez.ugandai.chat.ui.DatabaseHelper
-import com.ugandai.ugandai.logbook.domain.model.ActivityType
+import com.ugandai.ugandai.logbook.data.dao.FarmActivityDao
+import com.ugandai.ugandai.logbook.data.entity.toDomain
+import com.ugandai.ugandai.logbook.data.entity.toEntity
 import com.ugandai.ugandai.logbook.domain.model.FarmActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,9 +12,10 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.withContext
 
-class LogBookRepository(private val context: Context) {
-
-    private val dbHelper = DatabaseHelper(context)
+class LogBookRepository(
+    private val context: Context,
+    private val farmActivityDao: FarmActivityDao
+) {
 
     private val _activities = MutableStateFlow<List<FarmActivity>>(emptyList())
     val activities: StateFlow<List<FarmActivity>> = _activities.asStateFlow()
@@ -24,22 +24,8 @@ class LogBookRepository(private val context: Context) {
         val activitiesList = withContext(Dispatchers.IO) {
             try {
                 Log.d("LogBookRepository", "loadActivities called for userId: $userId")
-                val db = dbHelper.readableDatabase
-                val cursor = db.rawQuery(
-                    "SELECT * FROM farm_activities WHERE user_id = ? ORDER BY date DESC, created_at DESC",
-                    arrayOf(userId)
-                )
-
-                val list = mutableListOf<FarmActivity>()
-
-                if (cursor.moveToFirst()) {
-                    do {
-                        val activity = cursorToFarmActivity(cursor)
-                        list.add(activity)
-                    } while (cursor.moveToNext())
-                }
-
-                cursor.close()
+                val entities = farmActivityDao.getActivities(userId)
+                val list = entities.map { it.toDomain() }
                 Log.d("LogBookRepository", "Loaded ${list.size} activities")
                 list
             } catch (e: Exception) {
@@ -59,18 +45,8 @@ class LogBookRepository(private val context: Context) {
         return withContext(Dispatchers.IO) {
             try {
                 Log.d("LogBookRepository", "saveActivity called: userId=${activity.userId}, type=${activity.activityType}, date=${activity.date}")
-                val db = dbHelper.writableDatabase
-                val values = ContentValues().apply {
-                    put("user_id", activity.userId)
-                    put("activity_type", activity.activityType.name)
-                    put("date", activity.date)
-                    put("crop", activity.crop)
-                    put("field", activity.field)
-                    put("note", activity.note)
-                    put("created_at", activity.createdAt)
-                }
-
-                val id = db.insert("farm_activities", null, values)
+                val entity = activity.toEntity()
+                val id = farmActivityDao.insertActivity(entity)
                 Log.d("LogBookRepository", "Insert returned id: $id")
                 if (id != -1L) {
                     loadActivities(activity.userId)
@@ -91,22 +67,8 @@ class LogBookRepository(private val context: Context) {
     suspend fun updateActivity(activity: FarmActivity): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
-                val db = dbHelper.writableDatabase
-                val values = ContentValues().apply {
-                    put("activity_type", activity.activityType.name)
-                    put("date", activity.date)
-                    put("crop", activity.crop)
-                    put("field", activity.field)
-                    put("note", activity.note)
-                }
-
-                val rowsAffected = db.update(
-                    "farm_activities",
-                    values,
-                    "id = ?",
-                    arrayOf(activity.id.toString())
-                )
-
+                val entity = activity.toEntity()
+                val rowsAffected = farmActivityDao.updateActivity(entity)
                 if (rowsAffected > 0) {
                     loadActivities(activity.userId)
                     return@withContext Result.success(Unit)
@@ -123,13 +85,7 @@ class LogBookRepository(private val context: Context) {
     suspend fun deleteActivity(activityId: Long, userId: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
-                val db = dbHelper.writableDatabase
-                val rowsDeleted = db.delete(
-                    "farm_activities",
-                    "id = ?",
-                    arrayOf(activityId.toString())
-                )
-
+                val rowsDeleted = farmActivityDao.deleteActivity(activityId, userId)
                 if (rowsDeleted > 0) {
                     loadActivities(userId)
                     return@withContext Result.success(Unit)
@@ -141,19 +97,5 @@ class LogBookRepository(private val context: Context) {
                 return@withContext Result.failure(e)
             }
         }
-    }
-
-    @SuppressLint("Range")
-    private fun cursorToFarmActivity(cursor: android.database.Cursor): FarmActivity {
-        return FarmActivity(
-            id = cursor.getLong(cursor.getColumnIndexOrThrow("id")),
-            userId = cursor.getString(cursor.getColumnIndexOrThrow("user_id")) ?: "",
-            activityType = ActivityType.valueOf(cursor.getString(cursor.getColumnIndexOrThrow("activity_type"))),
-            date = cursor.getString(cursor.getColumnIndexOrThrow("date")) ?: "",
-            crop = cursor.getString(cursor.getColumnIndexOrThrow("crop")) ?: "",
-            field = cursor.getString(cursor.getColumnIndexOrThrow("field")) ?: "",
-            note = cursor.getString(cursor.getColumnIndexOrThrow("note")) ?: "",
-            createdAt = cursor.getLong(cursor.getColumnIndexOrThrow("created_at"))
-        )
     }
 }

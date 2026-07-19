@@ -18,11 +18,11 @@ import androidx.appcompat.app.AppCompatActivity;
 
 import com.ugandai.ugandai.R;
 import com.ugandai.ugandai.databinding.ActivitySignupBinding;
+import com.ugandai.ugandai.utils.NetworkConfig;
 
 public class SignupActivity extends AppCompatActivity {
 
     ActivitySignupBinding binding;
-    DatabaseHelper databaseHelper;
     private String selectedLocation = "";
 
     // Simulate an asynchronous network operation
@@ -34,10 +34,21 @@ public class SignupActivity extends AppCompatActivity {
     }
 
     private static String userRegister(String userName, String password, String location) {
+        if (NetworkConfig.USE_MOCK_SERVER) {
+            try {
+                Thread.sleep(1000); // Simulate network latency
+            } catch (InterruptedException ignored) {}
+
+            if (userName == null || userName.isEmpty() || password == null || password.isEmpty() || location == null || location.isEmpty()) {
+                return "All fields are mandatory";
+            }
+            return "Success";
+        }
+
         String userCreationSuccess = "Failed";
         try {
             // Step 1: Create a new user by sending a POST request to the /users/ endpoint
-            URL userUrl = new URL("http://ec2-54-85-226-52.compute-1.amazonaws.com:8000/users/register/");
+            URL userUrl = new URL(NetworkConfig.BASE_URL + "/users/register/");
             HttpURLConnection conUser = (HttpURLConnection) userUrl.openConnection();
 
             conUser.setRequestMethod("POST");
@@ -117,8 +128,6 @@ public class SignupActivity extends AppCompatActivity {
         
         binding = ActivitySignupBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
-
-        databaseHelper = new DatabaseHelper(this);
 
         // Setup location spinner
         String[] locations = {"Select Location", "Buyanga", "Namutumba", "Mbale"};

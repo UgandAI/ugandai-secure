@@ -23,6 +23,7 @@ import java.util.concurrent.Executors;
 import androidx.security.crypto.EncryptedSharedPreferences;
 import androidx.security.crypto.MasterKeys;
 import android.content.SharedPreferences;
+import com.ugandai.ugandai.utils.NetworkConfig;
 
 public class LoginActivity extends AppCompatActivity {
 
@@ -110,13 +111,28 @@ public class LoginActivity extends AppCompatActivity {
     }
 
     private String performLogin(String username, String password) {
+        if (NetworkConfig.USE_MOCK_SERVER) {
+            try {
+                Thread.sleep(1000); // Simulate network latency
+            } catch (InterruptedException ignored) {}
+
+            if (username != null && !username.isEmpty() && password != null && !password.isEmpty()) {
+                String mockToken = "mock_jwt_token_for_" + username;
+                saveToken(mockToken);
+                saveUsername(username);
+                return "Success";
+            } else {
+                return "Username and password cannot be empty";
+            }
+        }
+
         HttpURLConnection conn = null;
         InputStream stream = null;
 
         try {
             Log.d(TAG, "Opening connection");
 
-            URL url = new URL("http://ec2-54-85-226-52.compute-1.amazonaws.com:8000/api/token");
+            URL url = new URL(NetworkConfig.BASE_URL + "/api/token");
             conn = (HttpURLConnection) url.openConnection();
 
             conn.setConnectTimeout(10000);
