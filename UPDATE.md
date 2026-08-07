@@ -20,10 +20,12 @@ This document provides a summary of the architectural updates and code moderniza
 *   **Repository Flow**: Cleanly migrated `LogBookRepository` and `ConversationRepository` to query through DAOs asynchronously.
 *   **Migration Fallback**: Configured Room with `.fallbackToDestructiveMigration()` to prevent silent crash risks during subsequent database schema upgrades.
 
-### 3. Serverless Mock Mode (Offline Development)
-*   **USE_MOCK_SERVER Toggle**: Set `NetworkConfig.USE_MOCK_SERVER = true` by default to enable serverless offline capabilities.
-*   **Mock Credentials & Registration**: Login and Signup activities intercept requests locally, issuing mock JWT tokens and navigating the user without hitting external network routes.
-*   **Mock AI Assistant & Logbook Suggesions**: `OpenAIRepository` simulates assistant response latency and translates farm-activity keywords (e.g., *plant*, *weed*, *fertilize*, *spray*, *harvest*, *water*) into mock `ProposedActivity` payloads. This allows end-to-end verification of the offline logbook prefill system without running a server.
+### 3. Backend Integration & Serverless Fallback
+*   **Live Backend Integration**: The app has been integrated with the completed Week 1 live backend. `NetworkConfig.BASE_URL` now points to the local backend emulator loopback (`http://10.0.2.2:8000`) and the mock server has been disabled (`USE_MOCK_SERVER = false`).
+*   **Authentication Routes**: `LoginActivity` and `SignupActivity` endpoints have been updated to target the backend's new `/login` and `/signup` endpoints, aligning payload fields to match backend schemas (`email` instead of `location`).
+*   **Serverless Mock Mode (Offline Development)**: The mock architecture remains in place as a fallback. `NetworkConfig.USE_MOCK_SERVER` can be toggled to `true` to enable serverless offline capabilities for frontend development.
+*   **Mock AI Assistant & Logbook Suggestions**: `OpenAIRepository` simulates assistant response latency and translates farm-activity keywords into mock `ProposedActivity` payloads.
+*   **Responses API Compatibility**: The backend has been migrated to the new OpenAI Responses API. The Android client remains 100% compatible with the backend `/chats` endpoint without any code changes required!
 
 ### 4. Dependency Injection & Dead Code Cleanup
 *   **DI Module**: Updated `ChatModule.kt` Koin definitions to instantiate the database and inject the new DAOs.
