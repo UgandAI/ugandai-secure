@@ -132,7 +132,7 @@ public class LoginActivity extends AppCompatActivity {
         try {
             Log.d(TAG, "Opening connection");
 
-            URL url = new URL(NetworkConfig.BASE_URL + "/api/token");
+            URL url = new URL(NetworkConfig.BASE_URL + "/login");
             conn = (HttpURLConnection) url.openConnection();
 
             conn.setConnectTimeout(10000);
