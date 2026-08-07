@@ -47,8 +47,8 @@ public class SignupActivity extends AppCompatActivity {
 
         String userCreationSuccess = "Failed";
         try {
-            // Step 1: Create a new user by sending a POST request to the /users/ endpoint
-            URL userUrl = new URL(NetworkConfig.BASE_URL + "/users/register/");
+            // Step 1: Create a new user by sending a POST request to the /signup endpoint
+            URL userUrl = new URL(NetworkConfig.BASE_URL + "/signup");
             HttpURLConnection conUser = (HttpURLConnection) userUrl.openConnection();
 
             conUser.setRequestMethod("POST");
@@ -56,7 +56,7 @@ public class SignupActivity extends AppCompatActivity {
             conUser.setRequestProperty("Accept", "application/json");
             conUser.setDoOutput(true);
 
-            String jsonUserInputString = String.format("{\"username\": \"%s\", \"password\": \"%s\", \"location\": \"%s\"}", userName, password, location);
+            String jsonUserInputString = String.format("{\"username\": \"%s\", \"password\": \"%s\", \"email\": \"%s\"}", userName, password, location);
 
             try (DataOutputStream out = new DataOutputStream(conUser.getOutputStream())) {
                 out.writeBytes(jsonUserInputString);
