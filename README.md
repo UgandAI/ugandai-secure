@@ -17,9 +17,16 @@ UgandAI is a mobile farming assistant designed to support rural farmers in Ugand
 # Demo
 [device-2023-04-29-121149.webm](https://user-images.githubusercontent.com/5604165/235278948-49e01143-1090-4d79-8310-7449466faaab.webm)
 
-# How to make it work
-- Simply replace `OPEN_AI_API_KEY` in `app/gradle.properties` with your OpenAI API key that you can find [on OpenAI platform](https://platform.openai.com/)
-- NEVER publish that file to Github. I did it to show you how it works and have a quick setup. 
+# Local backend
+
+The debug configuration connects an Android emulator to the backend running on
+the development computer at `http://10.0.2.2:8000`. Start the canonical backend
+first, then build and run the app from Android Studio or with
+`./gradlew assembleDebug`. OpenAI credentials belong only in the backend
+environment; the Android app does not contain an OpenAI API key.
+
+For a physical Android device, change `NetworkConfig.BASE_URL` to the development
+computer's reachable LAN address.
 
 Enjoy!
 

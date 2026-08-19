@@ -20,11 +20,6 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
-
-        // Robustly load OpenAI API Key from Env or gradle.properties
-        def envKey = System.getenv("OPEN_AI_API_KEY") ?: (project.findProperty("OPEN_AI_API_KEY") ?: "")
-        def cleanKey = envKey.replace("\"", "")
-        buildConfigField "String", "OPEN_AI_API_KEY", "\"${cleanKey}\""
     }
 
     buildTypes {
@@ -32,11 +27,7 @@ android {
             minifyEnabled = true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
-        debug {
-            def envKey = System.getenv("OPEN_AI_API_KEY") ?: (project.findProperty("OPEN_AI_API_KEY") ?: "")
-            def cleanKey = envKey.replace("\"", "")
-            buildConfigField "String", "OPEN_AI_API_KEY", "\"${cleanKey}\""
-        }
+        debug { }
     }
 
     compileOptions {

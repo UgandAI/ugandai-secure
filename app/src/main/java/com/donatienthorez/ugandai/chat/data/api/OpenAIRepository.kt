@@ -119,7 +119,10 @@ class OpenAIRepository(private val context: Context) {
 
                 con.doOutput = true
 
-                val jsonInputString = """{"sender": "user", "content": "$userInput"}"""
+                val jsonInputString = JSONObject()
+                    .put("sender", "user")
+                    .put("content", userInput)
+                    .toString()
                 DataOutputStream(con.outputStream).use { out ->
                     out.writeBytes(jsonInputString)
                     out.flush()

@@ -16,6 +16,7 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
+import java.net.URLEncoder;
 import java.util.Scanner;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -143,8 +144,8 @@ public class LoginActivity extends AppCompatActivity {
             conn.setRequestProperty("Accept", "application/json");
             conn.setDoOutput(true);
 
-            String body = "username=" + username + "&password=" + password;
-            Log.d(TAG, "Sending body: " + body);
+            String body = "username=" + URLEncoder.encode(username, StandardCharsets.UTF_8.name())
+                    + "&password=" + URLEncoder.encode(password, StandardCharsets.UTF_8.name());
 
             try (OutputStream os = conn.getOutputStream()) {
                 os.write(body.getBytes(StandardCharsets.UTF_8));

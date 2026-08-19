@@ -13,6 +13,7 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.CompletableFuture;
+import org.json.JSONObject;
 
 import androidx.appcompat.app.AppCompatActivity;
 
@@ -56,7 +57,12 @@ public class SignupActivity extends AppCompatActivity {
             conUser.setRequestProperty("Accept", "application/json");
             conUser.setDoOutput(true);
 
-            String jsonUserInputString = String.format("{\"username\": \"%s\", \"password\": \"%s\", \"email\": \"%s\"}", userName, password, location);
+            String jsonUserInputString = new JSONObject()
+                    .put("username", userName)
+                    .put("password", password)
+                    .put("email", userName)
+                    .put("location", location)
+                    .toString();
 
             try (DataOutputStream out = new DataOutputStream(conUser.getOutputStream())) {
                 out.writeBytes(jsonUserInputString);
