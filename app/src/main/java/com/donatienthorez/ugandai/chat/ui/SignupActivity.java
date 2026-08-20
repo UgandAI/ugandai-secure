@@ -6,7 +6,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Toast;
-import java.io.DataOutputStream;
+import java.io.OutputStreamWriter;
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
@@ -64,9 +64,8 @@ public class SignupActivity extends AppCompatActivity {
                     .put("location", location)
                     .toString();
 
-            try (DataOutputStream out = new DataOutputStream(conUser.getOutputStream())) {
-                out.writeBytes(jsonUserInputString);
-                out.flush();
+            try (OutputStreamWriter out = new OutputStreamWriter(conUser.getOutputStream(), StandardCharsets.UTF_8)) {
+                out.write(jsonUserInputString);
             }
 
             int userStatus = conUser.getResponseCode();
@@ -86,9 +85,8 @@ public class SignupActivity extends AppCompatActivity {
                 conUser.setRequestProperty("Accept", "application/json");
                 conUser.setDoOutput(true);
 
-                try (DataOutputStream out = new DataOutputStream(conUser.getOutputStream())) {
-                    out.writeBytes(jsonUserInputString);
-                    out.flush();
+                try (OutputStreamWriter out = new OutputStreamWriter(conUser.getOutputStream(), StandardCharsets.UTF_8)) {
+                    out.write(jsonUserInputString);
                 }
 
                 userStatus = conUser.getResponseCode();

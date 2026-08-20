@@ -5,7 +5,6 @@ import com.ugandai.ugandai.chat.data.Message
 import com.ugandai.ugandai.chat.data.MessageStatus
 import com.donatienthorez.ugandai.chat.data.api.ProposedActivity
 import java.io.BufferedReader
-import java.io.DataOutputStream
 import java.io.InputStreamReader
 import java.net.HttpURLConnection
 import java.net.URL
@@ -20,6 +19,8 @@ import androidx.security.crypto.MasterKeys
 import com.ugandai.ugandai.utils.NetworkConfig
 
 class OpenAIRepository(private val context: Context) {
+
+    private var backendConversationId: Long? = null
 
     @Throws(NoChoiceAvailableException::class)
     suspend fun sendChatRequest(
@@ -106,7 +107,10 @@ class OpenAIRepository(private val context: Context) {
 
         return withContext(Dispatchers.IO) {
             try {
-                val url = URL("${NetworkConfig.BASE_URL}/chats")
+                val conversationId = backendConversationId ?: createConversation(token).also {
+                    backendConversationId = it
+                }
+                val url = URL("${NetworkConfig.BASE_URL}/conversations/$conversationId/messages")
                 val con = url.openConnection() as HttpURLConnection
 
                 con.requestMethod = "POST"
@@ -120,12 +124,10 @@ class OpenAIRepository(private val context: Context) {
                 con.doOutput = true
 
                 val jsonInputString = JSONObject()
-                    .put("sender", "user")
                     .put("content", userInput)
                     .toString()
-                DataOutputStream(con.outputStream).use { out ->
-                    out.writeBytes(jsonInputString)
-                    out.flush()
+                con.outputStream.writer(StandardCharsets.UTF_8).use { writer ->
+                    writer.write(jsonInputString)
                 }
 
                 BufferedReader(InputStreamReader(con.inputStream, StandardCharsets.UTF_8)).use { reader ->
@@ -138,7 +140,9 @@ class OpenAIRepository(private val context: Context) {
                     val responseString = content.toString()
                     val jsonObject = JSONObject(responseString)
 
-                    val contentText = jsonObject.getString("content")
+                    val contentText = jsonObject
+                        .getJSONObject("assistant_message")
+                        .getString("content")
 
                     var proposedActivity: ProposedActivity? = null
 
@@ -172,6 +176,28 @@ class OpenAIRepository(private val context: Context) {
                     proposedActivity = null
                 )
             }
+        }
+    }
+
+    private fun createConversation(token: String?): Long {
+        require(!token.isNullOrBlank()) { "Login is required before starting a conversation" }
+        val connection = (URL("${NetworkConfig.BASE_URL}/conversations")
+            .openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            setRequestProperty("Accept", "application/json")
+            setRequestProperty("Authorization", "Bearer $token")
+        }
+        return try {
+            val status = connection.responseCode
+            if (status !in 200..299) {
+                val error = connection.errorStream?.bufferedReader()?.use { it.readText() }
+                throw IllegalStateException(error ?: "Unable to start conversation ($status)")
+            }
+            val response = connection.inputStream.bufferedReader(StandardCharsets.UTF_8)
+                .use { it.readText() }
+            JSONObject(response).getLong("id")
+        } finally {
+            connection.disconnect()
         }
     }
 
