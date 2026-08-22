@@ -30,14 +30,31 @@ class ConversationRepository(
             loadMessagesFromDatabase()
             synchronized(messagesList) {
                 if (messagesList.isEmpty()) {
-                    val welcomeMessage = Message(
-                        text = "Welcome farmer, how can I help?",
-                        isFromUser = false,
-                        messageStatus = MessageStatus.Sent
-                    )
-                    messagesList.add(welcomeMessage)
                     repositoryScope.launch {
-                        saveMessageToDatabase(welcomeMessage)
+                        try {
+                            val response = com.ugandai.ugandai.data.api.UgandAIApiClient.api.getInitialRecommendation()
+                            val welcomeMessage = Message(
+                                text = response.recommendation,
+                                isFromUser = false,
+                                messageStatus = MessageStatus.Sent
+                            )
+                            synchronized(messagesList) {
+                                messagesList.add(welcomeMessage)
+                            }
+                            saveMessageToDatabase(welcomeMessage)
+                            updateConversationFlow(messagesList)
+                        } catch (e: Exception) {
+                            val welcomeMessage = Message(
+                                text = "Welcome farmer! How can I help you today?",
+                                isFromUser = false,
+                                messageStatus = MessageStatus.Sent
+                            )
+                            synchronized(messagesList) {
+                                messagesList.add(welcomeMessage)
+                            }
+                            saveMessageToDatabase(welcomeMessage)
+                            updateConversationFlow(messagesList)
+                        }
                     }
                 }
             }
@@ -88,6 +105,21 @@ class ConversationRepository(
                 messagesList[index] = messagesList[index].copy(messageStatus = MessageStatus.Error)
                 repositoryScope.launch {
                     updateMessageStatusInDatabase(messageId, "Error")
+                }
+            }
+        }
+        updateConversationFlow(messagesList)
+    }
+
+    fun updateMessageText(messageId: String, newChunk: String) {
+        synchronized(messagesList) {
+            val index = messagesList.indexOfFirst { it.id == messageId }
+            if (index != -1) {
+                val currentText = messagesList[index].text
+                val updatedText = currentText + newChunk
+                messagesList[index] = messagesList[index].copy(text = updatedText)
+                repositoryScope.launch {
+                    saveMessageToDatabase(messagesList[index])
                 }
             }
         }

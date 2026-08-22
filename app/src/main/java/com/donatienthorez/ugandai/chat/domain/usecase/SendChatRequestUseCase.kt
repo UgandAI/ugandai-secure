@@ -3,7 +3,7 @@ package com.ugandai.ugandai.chat.domain.usecase
 import com.ugandai.ugandai.chat.data.ConversationRepository
 import com.ugandai.ugandai.chat.data.Message
 import com.ugandai.ugandai.chat.data.MessageStatus
-import com.ugandai.ugandai.chat.data.api.OpenAIRepository
+import com.donatienthorez.ugandai.chat.data.api.OpenAIRepository
 import kotlinx.coroutines.delay
 
 class SendChatRequestUseCase(
@@ -19,14 +19,25 @@ class SendChatRequestUseCase(
             isFromUser = true,
             messageStatus = MessageStatus.Sending
         )
-        val conversation = conversationRepository.addMessage(message)
+        conversationRepository.addMessage(message)
+        
+        // Add an empty assistant message to stream into
+        val assistantMessage = Message(
+            text = "",
+            isFromUser = false,
+            messageStatus = MessageStatus.Sending
+        )
+        conversationRepository.addMessage(assistantMessage)
 
         try {
-            val reply = openAIRepository.sendChatRequest(conversation, message.text)
+            openAIRepository.sendChatRequestStream(message.text).collect { chunk ->
+                conversationRepository.updateMessageText(assistantMessage.id, chunk)
+            }
             conversationRepository.setMessageStatusToSent(message.id)
-            conversationRepository.addMessage(reply)
+            conversationRepository.setMessageStatusToSent(assistantMessage.id)
         } catch (exception: Exception) {
             conversationRepository.setMessageStatusToError(message.id)
+            conversationRepository.setMessageStatusToError(assistantMessage.id)
         }
     }
 }

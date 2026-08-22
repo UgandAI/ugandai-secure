@@ -4,22 +4,17 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import com.ugandai.ugandai.auth.ui.AuthScreen
 
-
-class WelcomeActivity : ComponentActivity() {
-
+class LoginActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
         setContent {
-            WelcomeScreen(
-                {
-                    startActivity(Intent(this, LoginActivity::class.java))
-                    Unit
-                },
-                {
-                    startActivity(Intent(this, LoginActivity::class.java))
-                    Unit
+            AuthScreen(
+                onLoginSuccess = { token ->
+                    val intent = Intent(this, com.ugandai.ugandai.profile.ui.ProfileActivity::class.java)
+                    startActivity(intent)
+                    finish()
                 }
             )
         }

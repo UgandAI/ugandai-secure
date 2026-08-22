@@ -3,7 +3,7 @@ package com.ugandai.ugandai.di
 import androidx.room.Room
 import com.ugandai.ugandai.database.AppDatabase
 import com.ugandai.ugandai.chat.data.ConversationRepository
-import com.ugandai.ugandai.chat.data.api.OpenAIRepository
+import com.donatienthorez.ugandai.chat.data.api.OpenAIRepository
 import com.donatienthorez.ugandai.chat.domain.usecase.ObserveMessagesUseCase
 import com.ugandai.ugandai.chat.domain.usecase.ResendMessageUseCase
 import com.ugandai.ugandai.chat.domain.usecase.SendChatRequestUseCase
@@ -42,6 +42,6 @@ val chatModule = module {
     single { ObserveMessagesUseCase(conversationRepository = get()) }
 
     // LogBook
-    single { LogBookRepository(androidContext(), farmActivityDao = get()) }
+    single { LogBookRepository(androidContext()) }
     viewModel { LogBookViewModel(get(), androidContext()) }
 }

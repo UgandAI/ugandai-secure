@@ -30,7 +30,7 @@
         </activity>
 
         <activity
-            android:name="com.donatienthorez.ugandai.chat.ui.SignupActivity"
+            android:name="com.ugandai.ugandai.profile.ui.ProfileActivity"
             android:theme="@style/Theme.SQL_Login"
             android:exported="false" />
 

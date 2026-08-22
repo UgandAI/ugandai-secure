@@ -2,9 +2,9 @@ package com.ugandai.ugandai.logbook.data
 
 import android.content.Context
 import android.util.Log
-import com.ugandai.ugandai.logbook.data.dao.FarmActivityDao
-import com.ugandai.ugandai.logbook.data.entity.toDomain
-import com.ugandai.ugandai.logbook.data.entity.toEntity
+import com.ugandai.ugandai.data.api.LogbookEntryRequest
+import com.ugandai.ugandai.data.api.UgandAIApiClient
+import com.ugandai.ugandai.logbook.domain.model.ActivityType
 import com.ugandai.ugandai.logbook.domain.model.FarmActivity
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +14,7 @@ import kotlinx.coroutines.withContext
 
 class LogBookRepository(
     private val context: Context,
-    private val farmActivityDao: FarmActivityDao
+    // Removed farmActivityDao
 ) {
 
     private val _activities = MutableStateFlow<List<FarmActivity>>(emptyList())
@@ -23,41 +23,47 @@ class LogBookRepository(
     suspend fun loadActivities(userId: String) {
         val activitiesList = withContext(Dispatchers.IO) {
             try {
-                Log.d("LogBookRepository", "loadActivities called for userId: $userId")
-                val entities = farmActivityDao.getActivities(userId)
-                val list = entities.map { it.toDomain() }
-                Log.d("LogBookRepository", "Loaded ${list.size} activities")
+                Log.d("LogBookRepository", "loadActivities from network")
+                val responseList = UgandAIApiClient.api.getLogbookEntries()
+                val list = responseList.map {
+                    FarmActivity(
+                        id = it.id.toLong(),
+                        userId = it.user_id.toString(),
+                        activityType = ActivityType.valueOf(it.activity_type),
+                        date = it.date,
+                        crop = it.crop,
+                        field = it.field,
+                        note = it.note ?: ""
+                    )
+                }
+                Log.d("LogBookRepository", "Loaded ${list.size} activities from network")
                 list
             } catch (e: Exception) {
-                Log.e("LogBookRepository", "Error loading activities", e)
+                Log.e("LogBookRepository", "Error loading activities from network", e)
                 e.printStackTrace()
                 emptyList()
             }
         }
-        // Update StateFlow on Main dispatcher
         withContext(Dispatchers.Main) {
             _activities.value = activitiesList
-            Log.d("LogBookRepository", "StateFlow updated with ${activitiesList.size} activities")
         }
     }
 
     suspend fun saveActivity(activity: FarmActivity): Result<Long> {
         return withContext(Dispatchers.IO) {
             try {
-                Log.d("LogBookRepository", "saveActivity called: userId=${activity.userId}, type=${activity.activityType}, date=${activity.date}")
-                val entity = activity.toEntity()
-                val id = farmActivityDao.insertActivity(entity)
-                Log.d("LogBookRepository", "Insert returned id: $id")
-                if (id != -1L) {
-                    loadActivities(activity.userId)
-                    Log.d("LogBookRepository", "Save successful, returning success")
-                    return@withContext Result.success(id)
-                } else {
-                    Log.e("LogBookRepository", "Insert failed, id was -1")
-                    return@withContext Result.failure(Exception("Failed to save activity"))
-                }
+                val request = LogbookEntryRequest(
+                    activity_type = activity.activityType.name,
+                    date = activity.date,
+                    crop = activity.crop,
+                    field = activity.field,
+                    note = activity.note
+                )
+                val response = UgandAIApiClient.api.createLogbookEntry(request)
+                loadActivities(activity.userId)
+                return@withContext Result.success(response.id.toLong())
             } catch (e: Exception) {
-                Log.e("LogBookRepository", "Exception during save", e)
+                Log.e("LogBookRepository", "Exception during network save", e)
                 e.printStackTrace()
                 return@withContext Result.failure(e)
             }
@@ -67,14 +73,16 @@ class LogBookRepository(
     suspend fun updateActivity(activity: FarmActivity): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
-                val entity = activity.toEntity()
-                val rowsAffected = farmActivityDao.updateActivity(entity)
-                if (rowsAffected > 0) {
-                    loadActivities(activity.userId)
-                    return@withContext Result.success(Unit)
-                } else {
-                    return@withContext Result.failure(Exception("Failed to update activity"))
-                }
+                val request = LogbookEntryRequest(
+                    activity_type = activity.activityType.name,
+                    date = activity.date,
+                    crop = activity.crop,
+                    field = activity.field,
+                    note = activity.note
+                )
+                UgandAIApiClient.api.updateLogbookEntry(activity.id.toInt(), request)
+                loadActivities(activity.userId)
+                return@withContext Result.success(Unit)
             } catch (e: Exception) {
                 e.printStackTrace()
                 return@withContext Result.failure(e)
@@ -85,13 +93,9 @@ class LogBookRepository(
     suspend fun deleteActivity(activityId: Long, userId: String): Result<Unit> {
         return withContext(Dispatchers.IO) {
             try {
-                val rowsDeleted = farmActivityDao.deleteActivity(activityId, userId)
-                if (rowsDeleted > 0) {
-                    loadActivities(userId)
-                    return@withContext Result.success(Unit)
-                } else {
-                    return@withContext Result.failure(Exception("Failed to delete activity"))
-                }
+                UgandAIApiClient.api.deleteLogbookEntry(activityId.toInt())
+                loadActivities(userId)
+                return@withContext Result.success(Unit)
             } catch (e: Exception) {
                 e.printStackTrace()
                 return@withContext Result.failure(e)
