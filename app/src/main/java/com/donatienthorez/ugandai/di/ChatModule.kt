@@ -4,9 +4,11 @@ import androidx.room.Room
 import com.ugandai.ugandai.database.AppDatabase
 import com.ugandai.ugandai.chat.data.ConversationRepository
 import com.donatienthorez.ugandai.chat.data.api.OpenAIRepository
+import com.donatienthorez.ugandai.chat.data.audio.VoicePlayer
 import com.donatienthorez.ugandai.chat.domain.usecase.ObserveMessagesUseCase
 import com.ugandai.ugandai.chat.domain.usecase.ResendMessageUseCase
 import com.ugandai.ugandai.chat.domain.usecase.SendChatRequestUseCase
+import com.ugandai.ugandai.chat.domain.usecase.VoiceChatUseCase
 import com.ugandai.ugandai.chat.ui.ChatViewModel
 import com.ugandai.ugandai.logbook.data.LogBookRepository
 import com.ugandai.ugandai.logbook.ui.LogBookViewModel
@@ -24,22 +26,24 @@ val chatModule = module {
         .fallbackToDestructiveMigration()
         .build()
     }
-    
+
     single { get<AppDatabase>().farmActivityDao() }
     single { get<AppDatabase>().messageDao() }
 
     viewModel {
-        ChatViewModel(get(), get(), get())
+        ChatViewModel(get(), get(), get(), get())
     }
 
     // Provide OpenAIRepository with context
     single { OpenAIRepository(context = androidContext()) }
+    single { VoicePlayer(context = androidContext()) }
 
     single { ConversationRepository(context = androidContext(), messageDao = get()) }
 
     single { SendChatRequestUseCase(openAIRepository = get(), conversationRepository = get()) }
     single { ResendMessageUseCase(openAIRepository = get(), conversationRepository = get()) }
     single { ObserveMessagesUseCase(conversationRepository = get()) }
+    single { VoiceChatUseCase(openAIRepository = get(), conversationRepository = get(), voicePlayer = get()) }
 
     // LogBook
     single { LogBookRepository(androidContext()) }

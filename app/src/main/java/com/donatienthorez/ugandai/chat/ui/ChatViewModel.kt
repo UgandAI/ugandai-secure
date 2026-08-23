@@ -10,12 +10,15 @@ import com.ugandai.ugandai.chat.data.MessageStatus
 import com.donatienthorez.ugandai.chat.domain.usecase.ObserveMessagesUseCase
 import com.ugandai.ugandai.chat.domain.usecase.ResendMessageUseCase
 import com.ugandai.ugandai.chat.domain.usecase.SendChatRequestUseCase
+import com.ugandai.ugandai.chat.domain.usecase.VoiceChatUseCase
 import kotlinx.coroutines.launch
+import java.io.File
 
 class ChatViewModel(
     private val sendChatRequestUseCase: SendChatRequestUseCase,
     private val resendChatRequestUseCase: ResendMessageUseCase,
     private val observeMessagesUseCase: ObserveMessagesUseCase,
+    private val voiceChatUseCase: VoiceChatUseCase,
 ) : ViewModel() {
 
     private val _conversation = MutableLiveData<Conversation>()
@@ -50,6 +53,12 @@ class ChatViewModel(
     fun resendMessage(message: Message) {
         viewModelScope.launch {
             resendChatRequestUseCase.invoke(message)
+        }
+    }
+
+    fun sendVoiceMessage(audioFile: File) {
+        viewModelScope.launch {
+            voiceChatUseCase.invoke(audioFile)
         }
     }
 }

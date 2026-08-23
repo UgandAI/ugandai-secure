@@ -30,6 +30,10 @@ class ChatActivity : ComponentActivity() {
                             viewModel.sendMessage(prompt)
                         },
 
+                        onSendVoiceMessage = { audioFile ->
+                            viewModel.sendVoiceMessage(audioFile)
+                        },
+
                         onResendMessage = viewModel::resendMessage,
 
                         // ✅ FIXED EXTRA KEYS HERE

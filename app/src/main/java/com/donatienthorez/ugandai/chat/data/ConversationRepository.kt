@@ -127,6 +127,20 @@ class ConversationRepository(
         updateConversationFlow(messagesList)
     }
 
+    /** Sets a message's full text (as opposed to [updateMessageText], which appends a streamed chunk). */
+    fun replaceMessageText(messageId: String, newText: String) {
+        synchronized(messagesList) {
+            val index = messagesList.indexOfFirst { it.id == messageId }
+            if (index != -1) {
+                messagesList[index] = messagesList[index].copy(text = newText)
+                repositoryScope.launch {
+                    saveMessageToDatabase(messagesList[index])
+                }
+            }
+        }
+        updateConversationFlow(messagesList)
+    }
+
     fun updateMessageCitations(messageId: String, citations: List<Citation>) {
         synchronized(messagesList) {
             val index = messagesList.indexOfFirst { it.id == messageId }

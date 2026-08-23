@@ -1,5 +1,9 @@
 package com.ugandai.ugandai.chat.ui
 
+import android.Manifest
+import android.content.pm.PackageManager
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -14,7 +18,9 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Send
+import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,21 +29,26 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.LiveData
+import com.donatienthorez.ugandai.chat.data.audio.VoiceRecorder
 import com.ugandai.ugandai.R
 import com.ugandai.ugandai.chat.data.Conversation
 import com.ugandai.ugandai.chat.data.Message
 import com.ugandai.ugandai.chat.data.MessageStatus
 import com.ugandai.ugandai.utils.HorizontalSpacer
 import com.ugandai.ugandai.utils.VerticalSpacer
+import java.io.File
 import kotlinx.coroutines.launch
 
 data class ChatScreenUiHandlers(
     val onSendMessage: (String) -> Unit = {},
+    val onSendVoiceMessage: (File) -> Unit = {},
     val onResendMessage: (Message) -> Unit = {},
     val onAddToLogBook: (Message) -> Unit = {},   // ✅ Added
     val onNavigateToLogBook: () -> Unit = {}
@@ -59,11 +70,43 @@ fun ChatScreen(
     val conversationState by conversation.observeAsState()
     val isSendingMessageState by isSendingMessage.observeAsState()
 
+    val context = LocalContext.current
+    val voiceRecorder = remember { VoiceRecorder(context) }
+    var isRecording by remember { mutableStateOf(false) }
+
     fun sendMessage() {
         uiHandlers.onSendMessage(inputValue)
         inputValue = ""
         coroutineScope.launch {
             listState.animateScrollToItem(conversationState?.list?.size ?: 0)
+        }
+    }
+
+    fun beginRecording() {
+        isRecording = true
+        voiceRecorder.start()
+    }
+
+    val micPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { granted -> if (granted) beginRecording() }
+
+    fun toggleRecording() {
+        if (isRecording) {
+            isRecording = false
+            voiceRecorder.stop()?.let { file -> uiHandlers.onSendVoiceMessage(file) }
+            coroutineScope.launch {
+                listState.animateScrollToItem(conversationState?.list?.size ?: 0)
+            }
+        } else {
+            val hasPermission = ContextCompat.checkSelfPermission(
+                context, Manifest.permission.RECORD_AUDIO
+            ) == PackageManager.PERMISSION_GRANTED
+            if (hasPermission) {
+                beginRecording()
+            } else {
+                micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
+            }
         }
     }
 
@@ -123,6 +166,27 @@ fun ChatScreen(
                     .padding(top = 8.dp, bottom = 16.dp),
                 verticalAlignment = Alignment.Bottom
             ) {
+                Button(
+                    modifier = Modifier.height(56.dp),
+                    onClick = { toggleRecording() },
+                    enabled = isSendingMessageState != true,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isRecording) Color(0xFFD32F2F) else Color(0xFF446F5D),
+                        contentColor = Color.White,
+                        disabledContainerColor = Color(0xFFCCCCCC),
+                        disabledContentColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(12.dp)
+                ) {
+                    if (isRecording) {
+                        Icon(Icons.Default.Stop, contentDescription = "Stop recording")
+                    } else {
+                        Icon(Icons.Default.Mic, contentDescription = "Record voice message")
+                    }
+                }
+
+                HorizontalSpacer(8.dp)
+
                 TextField(
                     value = inputValue,
                     onValueChange = { inputValue = it },

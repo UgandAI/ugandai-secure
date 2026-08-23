@@ -6,9 +6,11 @@ import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKeys
 import com.ugandai.ugandai.chat.data.Conversation
 import com.ugandai.ugandai.utils.NetworkConfig
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.withContext
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
@@ -16,6 +18,7 @@ import okhttp3.sse.EventSource
 import okhttp3.sse.EventSourceListener
 import okhttp3.sse.EventSources
 import org.json.JSONObject
+import java.io.IOException
 import java.util.concurrent.TimeUnit
 
 data class Citation(
@@ -27,6 +30,29 @@ data class Citation(
     val chunkIndex: Int
 )
 
+data class VoiceChatResult(
+    val transcript: String,
+    val content: String,
+    val citations: List<Citation>,
+    val audioBytes: ByteArray,
+    val audioFormat: String
+)
+
+internal fun parseCitationsArray(json: JSONObject): List<Citation> {
+    val values = json.optJSONArray("citations") ?: return emptyList()
+    return (0 until values.length()).map { index ->
+        val item = values.getJSONObject(index)
+        Citation(
+            documentId = item.getInt("document_id"),
+            title = item.getString("title"),
+            source = item.getString("source"),
+            url = item.optString("url").takeUnless { it.isBlank() || it == "null" },
+            chunkId = item.getInt("chunk_id"),
+            chunkIndex = item.getInt("chunk_index")
+        )
+    }
+}
+
 sealed class ChatStreamEvent {
     data class Content(val text: String) : ChatStreamEvent()
     data class Citations(val items: List<Citation>) : ChatStreamEvent()
@@ -35,21 +61,7 @@ sealed class ChatStreamEvent {
 fun parseChatStreamEvent(data: String): ChatStreamEvent? {
     val json = JSONObject(data)
     if (json.has("content")) return ChatStreamEvent.Content(json.getString("content"))
-    if (json.has("citations")) {
-        val values = json.getJSONArray("citations")
-        val citations = (0 until values.length()).map { index ->
-            val item = values.getJSONObject(index)
-            Citation(
-                documentId = item.getInt("document_id"),
-                title = item.getString("title"),
-                source = item.getString("source"),
-                url = item.optString("url").takeUnless { it.isBlank() || it == "null" },
-                chunkId = item.getInt("chunk_id"),
-                chunkIndex = item.getInt("chunk_index")
-            )
-        }
-        return ChatStreamEvent.Citations(citations)
-    }
+    if (json.has("citations")) return ChatStreamEvent.Citations(parseCitationsArray(json))
     return null
 }
 
@@ -106,6 +118,47 @@ class OpenAIRepository(private val context: Context) {
             eventSource.cancel()
         }
     }
+
+    /**
+     * Speech in, speech out. Backend transcribes [audioBytes], runs the transcript through
+     * the same RAG chat pipeline as [sendChatRequestStream], and returns a synthesized reply.
+     * Matches POST /voice/chat on the Web-Server backend.
+     */
+    suspend fun sendVoiceChat(audioBytes: ByteArray, filename: String = "voice.m4a"): VoiceChatResult =
+        withContext(Dispatchers.IO) {
+            val token = getTokenFromEncryptedPreferences(context)
+
+            val multipartBody = MultipartBody.Builder()
+                .setType(MultipartBody.FORM)
+                .addFormDataPart(
+                    "audio", filename,
+                    audioBytes.toRequestBody("audio/mp4".toMediaType())
+                )
+                .build()
+
+            val requestBuilder = Request.Builder()
+                .url("${NetworkConfig.BASE_URL}/voice/chat")
+                .post(multipartBody)
+
+            if (token != null) {
+                requestBuilder.header("Authorization", "Bearer $token")
+            }
+
+            client.newCall(requestBuilder.build()).execute().use { response ->
+                val bodyText = response.body?.string()
+                if (!response.isSuccessful || bodyText == null) {
+                    throw IOException("Voice chat failed (${response.code}): ${bodyText ?: "no body"}")
+                }
+                val json = JSONObject(bodyText)
+                VoiceChatResult(
+                    transcript = json.getString("transcript"),
+                    content = json.getString("content"),
+                    citations = parseCitationsArray(json),
+                    audioBytes = android.util.Base64.decode(json.getString("audio_base64"), android.util.Base64.DEFAULT),
+                    audioFormat = json.optString("audio_format", "mp3")
+                )
+            }
+        }
 
     private fun getTokenFromEncryptedPreferences(context: Context): String? {
         return try {
