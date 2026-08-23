@@ -16,7 +16,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.SQL_Login"
-        android:usesCleartextTraffic="true"
+        android:usesCleartextTraffic="${usesCleartextTraffic}"
         tools:targetApi="31">
 
         <!-- 🔥 NEW LAUNCHER -->
@@ -39,20 +39,20 @@
         <activity
             android:name="com.donatienthorez.ugandai.chat.ui.LoginActivity"
             android:theme="@style/Theme.SQL_Login"
-            android:exported="true" />
+            android:exported="false" />
 
         <activity
             android:name="com.donatienthorez.ugandai.chat.ui.ChatActivity"
             android:theme="@style/Theme.SQL_Login"
             android:screenOrientation="portrait"
-            android:exported="true"
+            android:exported="false"
             android:windowSoftInputMode="adjustResize" />
 
         <activity
             android:name="com.donatienthorez.ugandai.chat.ui.presets.PresetPromptsActivity"
             android:theme="@style/Theme.SQL_Login"
             android:screenOrientation="portrait"
-            android:exported="true" />
+            android:exported="false" />
 
         <activity
             android:name="com.ugandai.ugandai.logbook.ui.LogBookActivity"

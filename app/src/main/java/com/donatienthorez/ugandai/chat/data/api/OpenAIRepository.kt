@@ -1,11 +1,9 @@
 package com.donatienthorez.ugandai.chat.data.api
 
 import android.content.Context
-import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKeys
 import com.ugandai.ugandai.chat.data.Conversation
 import com.ugandai.ugandai.utils.NetworkConfig
+import com.ugandai.ugandai.auth.data.AuthTokenStore
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -67,12 +65,16 @@ fun parseChatStreamEvent(data: String): ChatStreamEvent? {
 
 class OpenAIRepository(private val context: Context) {
 
+    private val tokenStore = AuthTokenStore(context)
+
     private val client = OkHttpClient.Builder()
+        .connectTimeout(15, TimeUnit.SECONDS)
+        .writeTimeout(30, TimeUnit.SECONDS)
         .readTimeout(0, TimeUnit.MILLISECONDS) // SSE needs no timeout
         .build()
 
     fun sendChatRequestStream(userInput: String): Flow<ChatStreamEvent> = callbackFlow {
-        val token = getTokenFromEncryptedPreferences(context)
+        val token = tokenStore.token()
         
         val jsonInput = JSONObject().apply {
             put("sender", "user")
@@ -101,7 +103,7 @@ class OpenAIRepository(private val context: Context) {
                         parseChatStreamEvent(data)?.let { trySend(it) }
                     }
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    close(IOException("Invalid chat stream response", e))
                 }
             }
 
@@ -110,7 +112,12 @@ class OpenAIRepository(private val context: Context) {
             }
 
             override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
-                close(t ?: Exception("SSE Stream Failed"))
+                val message = when (response?.code) {
+                    401 -> "Authentication expired"
+                    403 -> "Chat access forbidden"
+                    else -> "Chat stream disconnected"
+                }
+                close(IOException(message, t))
             }
         })
 
@@ -126,7 +133,8 @@ class OpenAIRepository(private val context: Context) {
      */
     suspend fun sendVoiceChat(audioBytes: ByteArray, filename: String = "voice.m4a"): VoiceChatResult =
         withContext(Dispatchers.IO) {
-            val token = getTokenFromEncryptedPreferences(context)
+            require(audioBytes.isNotEmpty()) { "Voice recording is empty" }
+            val token = tokenStore.token()
 
             val multipartBody = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
@@ -147,7 +155,13 @@ class OpenAIRepository(private val context: Context) {
             client.newCall(requestBuilder.build()).execute().use { response ->
                 val bodyText = response.body?.string()
                 if (!response.isSuccessful || bodyText == null) {
-                    throw IOException("Voice chat failed (${response.code}): ${bodyText ?: "no body"}")
+                    throw IOException(when (response.code) {
+                        401 -> "Authentication expired"
+                        403 -> "Voice chat access forbidden"
+                        413 -> "Voice recording is too large"
+                        415, 422 -> "Voice recording is invalid"
+                        else -> "Voice chat failed (${response.code})"
+                    })
                 }
                 val json = JSONObject(bodyText)
                 VoiceChatResult(
@@ -160,19 +174,4 @@ class OpenAIRepository(private val context: Context) {
             }
         }
 
-    private fun getTokenFromEncryptedPreferences(context: Context): String? {
-        return try {
-            val masterKeyAlias = MasterKeys.getOrCreate(MasterKeys.AES256_GCM_SPEC)
-            val sharedPreferences: SharedPreferences = EncryptedSharedPreferences.create(
-                "secure_prefs",
-                masterKeyAlias,
-                context,
-                EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-                EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-            )
-            sharedPreferences.getString("user_token", null)
-        } catch (e: Exception) {
-            null
-        }
-    }
 }

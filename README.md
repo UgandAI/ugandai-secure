@@ -32,3 +32,18 @@ Enjoy!
 
 # Contribution
 Feel free to contact me at donatienthorez@gmail.com or make a PR to this repo.
+# Local ship-readiness notes
+
+The Android client uses the canonical backend contracts for signup/login, profiles, logbook,
+recommendations, SSE chat/citations, and multipart voice chat. Successful login stores the JWT
+in encrypted shared preferences; Retrofit, SSE, and voice requests send it as a bearer token.
+
+The debug API defaults to `http://10.0.2.2:8000`. Override it without editing source:
+
+```bash
+./gradlew -PUGANDAI_API_BASE_URL=https://example.test testDebugUnitTest assembleDebug lintDebug
+```
+
+Cleartext traffic is enabled only for debug emulator development and disabled in release builds.
+To roll back a bad client release, build the last verified Git commit against the matching backend
+contract; do not reuse generated APK/AAB output from another commit.

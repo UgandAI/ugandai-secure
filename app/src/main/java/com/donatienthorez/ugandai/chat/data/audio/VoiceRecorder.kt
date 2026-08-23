@@ -19,13 +19,19 @@ class VoiceRecorder(private val context: Context) {
             @Suppress("DEPRECATION")
             MediaRecorder()
         }
-        mediaRecorder.apply {
-            setAudioSource(MediaRecorder.AudioSource.MIC)
-            setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-            setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
-            setOutputFile(file.absolutePath)
-            prepare()
-            start()
+        try {
+            mediaRecorder.apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setOutputFile(file.absolutePath)
+                prepare()
+                start()
+            }
+        } catch (error: Exception) {
+            mediaRecorder.release()
+            file.delete()
+            throw error
         }
         recorder = mediaRecorder
         outputFile = file

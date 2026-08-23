@@ -5,12 +5,13 @@ import com.ugandai.ugandai.di.chatModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
+import com.ugandai.ugandai.data.api.UgandAIApiClient
 
 class UgandAI : Application() {
 
     override fun onCreate() {
         super.onCreate()
-
+        UgandAIApiClient.initialize(this)
         startKoin()
     }
 
