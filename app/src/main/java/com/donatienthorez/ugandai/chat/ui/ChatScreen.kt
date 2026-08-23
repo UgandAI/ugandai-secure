@@ -268,6 +268,28 @@ fun MessageList(
                 }
             }
 
+            if (!message.isFromUser && message.citations.isNotEmpty()) {
+                var sourcesExpanded by remember(message.id) { mutableStateOf(false) }
+                Column(modifier = Modifier.padding(top = 4.dp, start = 12.dp)) {
+                    Text(
+                        text = if (sourcesExpanded) "Hide sources" else "Sources (${message.citations.size})",
+                        color = Color(0xFF446F5D),
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.clickable { sourcesExpanded = !sourcesExpanded }
+                    )
+                    if (sourcesExpanded) {
+                        message.citations.forEach { citation ->
+                            Text(
+                                text = "• ${citation.title}${citation.url?.let { " — $it" } ?: ""}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF555555),
+                                modifier = Modifier.padding(top = 2.dp)
+                            )
+                        }
+                    }
+                }
+            }
+
             VerticalSpacer(8.dp)
         }
     }

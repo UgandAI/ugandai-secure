@@ -4,6 +4,7 @@ import com.ugandai.ugandai.chat.data.ConversationRepository
 import com.ugandai.ugandai.chat.data.Message
 import com.ugandai.ugandai.chat.data.MessageStatus
 import com.donatienthorez.ugandai.chat.data.api.OpenAIRepository
+import com.donatienthorez.ugandai.chat.data.api.ChatStreamEvent
 import kotlinx.coroutines.delay
 
 class SendChatRequestUseCase(
@@ -30,8 +31,11 @@ class SendChatRequestUseCase(
         conversationRepository.addMessage(assistantMessage)
 
         try {
-            openAIRepository.sendChatRequestStream(message.text).collect { chunk ->
-                conversationRepository.updateMessageText(assistantMessage.id, chunk)
+            openAIRepository.sendChatRequestStream(message.text).collect { event ->
+                when (event) {
+                    is ChatStreamEvent.Content -> conversationRepository.updateMessageText(assistantMessage.id, event.text)
+                    is ChatStreamEvent.Citations -> conversationRepository.updateMessageCitations(assistantMessage.id, event.items)
+                }
             }
             conversationRepository.setMessageStatusToSent(message.id)
             conversationRepository.setMessageStatusToSent(assistantMessage.id)

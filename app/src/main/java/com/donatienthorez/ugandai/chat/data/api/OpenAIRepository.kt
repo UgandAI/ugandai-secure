@@ -18,13 +18,48 @@ import okhttp3.sse.EventSources
 import org.json.JSONObject
 import java.util.concurrent.TimeUnit
 
+data class Citation(
+    val documentId: Int,
+    val title: String,
+    val source: String,
+    val url: String?,
+    val chunkId: Int,
+    val chunkIndex: Int
+)
+
+sealed class ChatStreamEvent {
+    data class Content(val text: String) : ChatStreamEvent()
+    data class Citations(val items: List<Citation>) : ChatStreamEvent()
+}
+
+fun parseChatStreamEvent(data: String): ChatStreamEvent? {
+    val json = JSONObject(data)
+    if (json.has("content")) return ChatStreamEvent.Content(json.getString("content"))
+    if (json.has("citations")) {
+        val values = json.getJSONArray("citations")
+        val citations = (0 until values.length()).map { index ->
+            val item = values.getJSONObject(index)
+            Citation(
+                documentId = item.getInt("document_id"),
+                title = item.getString("title"),
+                source = item.getString("source"),
+                url = item.optString("url").takeUnless { it.isBlank() || it == "null" },
+                chunkId = item.getInt("chunk_id"),
+                chunkIndex = item.getInt("chunk_index")
+            )
+        }
+        return ChatStreamEvent.Citations(citations)
+    }
+    return null
+}
+
 class OpenAIRepository(private val context: Context) {
 
     private val client = OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS) // SSE needs no timeout
         .build()
 
-    fun sendChatRequestStream(userInput: String): Flow<String> = callbackFlow {
+    fun sendChatRequestStream(userInput: String): Flow<ChatStreamEvent> = callbackFlow {
         val token = getTokenFromEncryptedPreferences(context)
         
         val jsonInput = JSONObject().apply {
@@ -48,10 +83,10 @@ class OpenAIRepository(private val context: Context) {
             override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String) {
                 try {
                     val json = JSONObject(data)
-                    if (json.has("content")) {
-                        trySend(json.getString("content"))
-                    } else if (json.has("error")) {
+                    if (json.has("error")) {
                         close(Exception(json.getString("error")))
+                    } else {
+                        parseChatStreamEvent(data)?.let { trySend(it) }
                     }
                 } catch (e: Exception) {
                     e.printStackTrace()

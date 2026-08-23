@@ -8,6 +8,7 @@ import com.ugandai.ugandai.chat.data.dao.MessageDao
 import com.ugandai.ugandai.chat.data.entity.toDomain
 import com.ugandai.ugandai.chat.data.entity.toEntity
 import com.donatienthorez.ugandai.chat.data.api.ProposedActivity
+import com.donatienthorez.ugandai.chat.data.api.Citation
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -126,6 +127,14 @@ class ConversationRepository(
         updateConversationFlow(messagesList)
     }
 
+    fun updateMessageCitations(messageId: String, citations: List<Citation>) {
+        synchronized(messagesList) {
+            val index = messagesList.indexOfFirst { it.id == messageId }
+            if (index != -1) messagesList[index] = messagesList[index].copy(citations = citations)
+        }
+        updateConversationFlow(messagesList)
+    }
+
     private fun updateConversationFlow(messagesList: List<Message>) : Conversation {
         val conversation = Conversation(
             list = messagesList.toList()
@@ -191,7 +200,8 @@ data class Message(
     val text: String,
     val isFromUser: Boolean,
     val messageStatus: MessageStatus = MessageStatus.Sending,
-    val proposedActivity: ProposedActivity? = null
+    val proposedActivity: ProposedActivity? = null,
+    val citations: List<Citation> = emptyList()
 )
 
 sealed class MessageStatus {
