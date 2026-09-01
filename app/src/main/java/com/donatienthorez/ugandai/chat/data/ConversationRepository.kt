@@ -24,49 +24,61 @@ class ConversationRepository(
     private var messagesList = mutableListOf<Message>()
     private var currentUsername: String? = null
     private val repositoryScope = CoroutineScope(Dispatchers.IO)
+    private val _conversationSummaries = MutableStateFlow<List<ConversationSummary>>(emptyList())
+    val conversationSummaries = _conversationSummaries.asStateFlow()
+    private val _selectedConversationId = MutableStateFlow<Int?>(null)
+    val selectedConversationId = _selectedConversationId.asStateFlow()
 
     init {
         currentUsername = getCurrentUsername()
-        repositoryScope.launch {
-            loadMessagesFromDatabase()
-            synchronized(messagesList) {
-                if (messagesList.isEmpty()) {
-                    repositoryScope.launch {
-                        try {
-                            val response = com.ugandai.ugandai.data.api.UgandAIApiClient.api.getInitialRecommendation()
-                            val welcomeMessage = Message(
-                                text = response.recommendation,
-                                isFromUser = false,
-                                messageStatus = MessageStatus.Sent
-                            )
-                            synchronized(messagesList) {
-                                messagesList.add(welcomeMessage)
-                            }
-                            saveMessageToDatabase(welcomeMessage)
-                            updateConversationFlow(messagesList)
-                        } catch (e: Exception) {
-                            val welcomeMessage = Message(
-                                text = "Welcome farmer! How can I help you today?",
-                                isFromUser = false,
-                                messageStatus = MessageStatus.Sent
-                            )
-                            synchronized(messagesList) {
-                                messagesList.add(welcomeMessage)
-                            }
-                            saveMessageToDatabase(welcomeMessage)
-                            updateConversationFlow(messagesList)
-                        }
-                    }
-                }
-            }
-            updateConversationFlow(messagesList)
-        }
+        repositoryScope.launch { refreshConversations(selectMostRecent = true) }
     }
 
     private val _conversationFlow = MutableStateFlow(
         value = Conversation(list = messagesList)
     )
     val conversationFlow = _conversationFlow.asStateFlow()
+
+    suspend fun refreshConversations(selectMostRecent: Boolean = false) {
+        val remote = com.ugandai.ugandai.data.api.UgandAIApiClient.api.getConversations()
+        _conversationSummaries.value = remote.map {
+            ConversationSummary(it.id, it.title, it.created_at, it.updated_at)
+        }
+        if (selectMostRecent && _selectedConversationId.value == null) {
+            if (remote.isEmpty()) newConversation() else selectConversation(remote.first().id)
+        }
+    }
+
+    suspend fun newConversation() {
+        val created = com.ugandai.ugandai.data.api.UgandAIApiClient.api.createConversation()
+        _conversationSummaries.value = listOf(
+            ConversationSummary(created.id, created.title, created.created_at, created.updated_at)
+        ) + _conversationSummaries.value.filterNot { it.id == created.id }
+        _selectedConversationId.value = created.id
+        synchronized(messagesList) { messagesList.clear() }
+        updateConversationFlow(messagesList)
+    }
+
+    suspend fun selectConversation(id: Int) {
+        val remote = com.ugandai.ugandai.data.api.UgandAIApiClient.api.getConversationMessages(id)
+        val loaded = remote.map {
+            Message(
+                id = "server-${it.id}", text = it.content,
+                isFromUser = it.role == "user", messageStatus = MessageStatus.Sent
+            )
+        }
+        _selectedConversationId.value = id
+        synchronized(messagesList) {
+            messagesList.clear()
+            messagesList.addAll(loaded)
+        }
+        updateConversationFlow(messagesList)
+    }
+
+    suspend fun selectedConversationOrCreate(): Int {
+        if (_selectedConversationId.value == null) newConversation()
+        return requireNotNull(_selectedConversationId.value)
+    }
 
     fun addMessage(message: Message) : Conversation {
         synchronized(messagesList) {
@@ -207,6 +219,13 @@ class ConversationRepository(
 
 class Conversation(
     val list: List<Message>
+)
+
+data class ConversationSummary(
+    val id: Int,
+    val title: String,
+    val createdAt: String,
+    val updatedAt: String
 )
 
 data class Message(

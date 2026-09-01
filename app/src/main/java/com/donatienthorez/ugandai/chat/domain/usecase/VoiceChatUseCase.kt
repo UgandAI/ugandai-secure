@@ -6,6 +6,10 @@ import com.ugandai.ugandai.chat.data.ConversationRepository
 import com.ugandai.ugandai.chat.data.Message
 import com.ugandai.ugandai.chat.data.MessageStatus
 import java.io.File
+import android.util.Log
+import java.security.MessageDigest
+import com.donatienthorez.ugandai.chat.voice.FinalTranscriptValidator
+import com.donatienthorez.ugandai.chat.data.api.VoiceChatResult
 
 /** Uploads a recorded voice message to POST /voice/chat, then renders the transcript,
  * reply text, and citations into the conversation and plays the synthesized reply audio. */
@@ -15,28 +19,42 @@ class VoiceChatUseCase(
     private val voicePlayer: VoicePlayer
 ) {
 
-    suspend operator fun invoke(audioFile: File) {
-        val userMessage = Message(text = "🎤 Voice message", isFromUser = true, messageStatus = MessageStatus.Sending)
-        conversationRepository.addMessage(userMessage)
-
-        val assistantMessage = Message(text = "", isFromUser = false, messageStatus = MessageStatus.Sending)
-        conversationRepository.addMessage(assistantMessage)
-
-        try {
-            val result = openAIRepository.sendVoiceChat(audioFile.readBytes())
-            conversationRepository.replaceMessageText(userMessage.id, result.transcript)
-            conversationRepository.replaceMessageText(assistantMessage.id, result.content)
-            if (result.citations.isNotEmpty()) {
-                conversationRepository.updateMessageCitations(assistantMessage.id, result.citations)
-            }
-            conversationRepository.setMessageStatusToSent(userMessage.id)
-            conversationRepository.setMessageStatusToSent(assistantMessage.id)
-            voicePlayer.play(result.audioBytes, result.audioFormat)
+    suspend operator fun invoke(audioFile: File, captureSessionId: Long = 0, playReply: Boolean = true): Result<VoiceChatResult> {
+        val conversationId = conversationRepository.selectedConversationOrCreate()
+        return try {
+            val audioBytes = audioFile.readBytes()
+            val hash = MessageDigest.getInstance("SHA-256").digest(audioBytes).joinToString("") { "%02x".format(it) }
+            Log.i(TAG, "VOICE session=$captureSessionId SEND_AUDIO file=${audioFile.name} bytes=${audioBytes.size} sha256=$hash")
+            val result = openAIRepository.sendVoiceChat(
+                audioBytes, conversationId, audioFile.name, captureSessionId, includeAudio = playReply
+            )
+            val transcript = FinalTranscriptValidator.normalize(result.transcript)
+                ?: throw IllegalArgumentException("No clear speech was detected. The transcript was rejected.")
+            Log.i(TAG, "VOICE session=$captureSessionId SEND=${transcript.take(300)} file=${audioFile.name}")
+            // Only finalized server transcription becomes a real chat message.
+            conversationRepository.addMessage(Message(
+                text = transcript,
+                isFromUser = true,
+                messageStatus = MessageStatus.Sent
+            ))
+            conversationRepository.addMessage(Message(
+                text = result.content,
+                isFromUser = false,
+                messageStatus = MessageStatus.Sent,
+                citations = result.citations
+            ))
+            conversationRepository.refreshConversations()
+            if (playReply) voicePlayer.play(result.audioBytes, result.audioFormat)
+            Log.i(TAG, "VOICE session=$captureSessionId END result=success")
+            Result.success(result)
         } catch (exception: Exception) {
-            conversationRepository.setMessageStatusToError(userMessage.id)
-            conversationRepository.setMessageStatusToError(assistantMessage.id)
+            Result.failure(exception)
         } finally {
             audioFile.delete()
         }
+    }
+
+    companion object {
+        private const val TAG = "UgandAIVoiceTrace"
     }
 }

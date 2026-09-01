@@ -2,11 +2,14 @@ package com.ugandai.ugandai.chat.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.activity.compose.BackHandler
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
@@ -21,7 +24,11 @@ import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Sync
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.livedata.observeAsState
@@ -32,26 +39,42 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LiveData
-import com.donatienthorez.ugandai.chat.data.audio.VoiceRecorder
+import com.donatienthorez.ugandai.chat.voice.VoiceModePhase
+import com.donatienthorez.ugandai.chat.voice.VoiceModeState
 import com.ugandai.ugandai.R
 import com.ugandai.ugandai.chat.data.Conversation
 import com.ugandai.ugandai.chat.data.Message
 import com.ugandai.ugandai.chat.data.MessageStatus
+import com.ugandai.ugandai.chat.data.ConversationSummary
 import com.ugandai.ugandai.utils.HorizontalSpacer
 import com.ugandai.ugandai.utils.VerticalSpacer
-import java.io.File
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 data class ChatScreenUiHandlers(
     val onSendMessage: (String) -> Unit = {},
-    val onSendVoiceMessage: (File) -> Unit = {},
     val onResendMessage: (Message) -> Unit = {},
     val onAddToLogBook: (Message) -> Unit = {},   // ✅ Added
-    val onNavigateToLogBook: () -> Unit = {}
+    val onNavigateToLogBook: () -> Unit = {},
+    val onNewConversation: () -> Unit = {},
+    val onSelectConversation: (Int) -> Unit = {},
+    val onEnterVoiceMode: () -> Unit = {},
+    val onExitVoiceMode: () -> Unit = {},
+    val onFinishVoiceTurn: () -> Unit = {},
+    val onInterruptVoiceMode: () -> Unit = {},
+    val onRetryVoiceMode: () -> Unit = {}
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -59,7 +82,10 @@ data class ChatScreenUiHandlers(
 fun ChatScreen(
     uiHandlers: ChatScreenUiHandlers = ChatScreenUiHandlers(),
     conversation: LiveData<Conversation>,
-    isSendingMessage: LiveData<Boolean>
+    isSendingMessage: LiveData<Boolean>,
+    conversationSummaries: LiveData<List<ConversationSummary>>,
+    selectedConversationId: LiveData<Int?>,
+    voiceModeState: StateFlow<VoiceModeState>
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
     var inputValue by remember { mutableStateOf("") }
@@ -69,10 +95,12 @@ fun ChatScreen(
 
     val conversationState by conversation.observeAsState()
     val isSendingMessageState by isSendingMessage.observeAsState()
+    val summaries by conversationSummaries.observeAsState(emptyList())
+    val selectedId by selectedConversationId.observeAsState()
+    val drawerState = rememberDrawerState(DrawerValue.Closed)
+    val voiceState by voiceModeState.collectAsState()
 
     val context = LocalContext.current
-    val voiceRecorder = remember { VoiceRecorder(context) }
-    var isRecording by remember { mutableStateOf(false) }
 
     fun sendMessage() {
         uiHandlers.onSendMessage(inputValue)
@@ -82,34 +110,56 @@ fun ChatScreen(
         }
     }
 
-    fun beginRecording() {
-        isRecording = true
-        voiceRecorder.start()
-    }
-
     val micPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted -> if (granted) beginRecording() }
+    ) { granted ->
+        if (granted) uiHandlers.onEnterVoiceMode()
+        else coroutineScope.launch { snackbarHostState.showSnackbar("Microphone permission is required for Voice Mode") }
+    }
 
-    fun toggleRecording() {
-        if (isRecording) {
-            isRecording = false
-            voiceRecorder.stop()?.let { file -> uiHandlers.onSendVoiceMessage(file) }
-            coroutineScope.launch {
-                listState.animateScrollToItem(conversationState?.list?.size ?: 0)
-            }
+    fun openVoiceMode() {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context, Manifest.permission.RECORD_AUDIO
+        ) == PackageManager.PERMISSION_GRANTED
+        if (hasPermission) {
+            uiHandlers.onEnterVoiceMode()
         } else {
-            val hasPermission = ContextCompat.checkSelfPermission(
-                context, Manifest.permission.RECORD_AUDIO
-            ) == PackageManager.PERMISSION_GRANTED
-            if (hasPermission) {
-                beginRecording()
-            } else {
-                micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
-            }
+            micPermissionLauncher.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
 
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet {
+                Text("Conversations", style = MaterialTheme.typography.headlineSmall, modifier = Modifier.padding(20.dp))
+                NavigationDrawerItem(
+                    label = { Text("New chat") },
+                    selected = false,
+                    icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                    onClick = {
+                        coroutineScope.launch { drawerState.close() }
+                        uiHandlers.onNewConversation()
+                    },
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                LazyColumn {
+                    items(summaries, key = { it.id }) { item ->
+                        NavigationDrawerItem(
+                            label = { Text(item.title, maxLines = 2, overflow = TextOverflow.Ellipsis) },
+                            selected = item.id == selectedId,
+                            onClick = {
+                                coroutineScope.launch { drawerState.close() }
+                                uiHandlers.onSelectConversation(item.id)
+                            },
+                            modifier = Modifier.padding(horizontal = 12.dp)
+                        )
+                    }
+                }
+            }
+        }
+    ) {
     Scaffold(
         containerColor = Color(0xFFF5F5F5),
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) }
@@ -129,19 +179,24 @@ fun ChatScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Chat",
+                    text = summaries.firstOrNull { it.id == selectedId }?.title ?: "Chat",
                     style = MaterialTheme.typography.headlineMedium,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold,
-                    color = Color(0xFF1E1E1E)
+                    color = Color(0xFF1E1E1E),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
                 )
-                IconButton(
-                    onClick = { uiHandlers.onNavigateToLogBook() }
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Book,
-                        contentDescription = "Log Book",
-                        tint = Color(0xFF446F5D)
-                    )
+                Row {
+                    IconButton(onClick = { coroutineScope.launch { drawerState.open() } }) {
+                        Icon(Icons.Default.History, contentDescription = "Chat history", tint = Color(0xFF446F5D))
+                    }
+                    IconButton(onClick = uiHandlers.onNewConversation) {
+                        Icon(Icons.Default.Add, contentDescription = "New chat", tint = Color(0xFF446F5D))
+                    }
+                    IconButton(onClick = { uiHandlers.onNavigateToLogBook() }) {
+                        Icon(Icons.Default.Book, contentDescription = "Log Book", tint = Color(0xFF446F5D))
+                    }
                 }
             }
             
@@ -168,21 +223,17 @@ fun ChatScreen(
             ) {
                 Button(
                     modifier = Modifier.height(56.dp),
-                    onClick = { toggleRecording() },
+                    onClick = { openVoiceMode() },
                     enabled = isSendingMessageState != true,
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isRecording) Color(0xFFD32F2F) else Color(0xFF446F5D),
+                        containerColor = Color(0xFF446F5D),
                         contentColor = Color.White,
                         disabledContainerColor = Color(0xFFCCCCCC),
                         disabledContentColor = Color.White
                     ),
                     shape = RoundedCornerShape(12.dp)
                 ) {
-                    if (isRecording) {
-                        Icon(Icons.Default.Stop, contentDescription = "Stop recording")
-                    } else {
-                        Icon(Icons.Default.Mic, contentDescription = "Record voice message")
-                    }
+                    Icon(Icons.Default.Mic, contentDescription = "Open Voice Mode")
                 }
 
                 HorizontalSpacer(8.dp)
@@ -199,9 +250,11 @@ fun ChatScreen(
                         containerColor = Color.White,
                         focusedIndicatorColor = Color.Transparent,
                         unfocusedIndicatorColor = Color.Transparent,
-                        textColor = Color(0xFF1E1E1E),
+                        focusedTextColor = Color(0xFF1E1E1E),
+                        unfocusedTextColor = Color(0xFF1E1E1E),
                         cursorColor = Color(0xFF446F5D),
-                        placeholderColor = Color(0xFF999999)
+                        focusedPlaceholderColor = Color(0xFF999999),
+                        unfocusedPlaceholderColor = Color(0xFF999999)
                     ),
                     placeholder = {
                         Text(
@@ -235,6 +288,190 @@ fun ChatScreen(
             }
         }
     }
+    }
+
+    if (voiceState.phase != VoiceModePhase.Idle) {
+        VoiceModeDialog(
+            state = voiceState,
+            onClose = uiHandlers.onExitVoiceMode,
+            onFinishTurn = uiHandlers.onFinishVoiceTurn,
+            onInterrupt = uiHandlers.onInterruptVoiceMode,
+            onRetry = uiHandlers.onRetryVoiceMode
+        )
+    }
+}
+
+@Composable
+private fun VoiceModeDialog(
+    state: VoiceModeState,
+    onClose: () -> Unit,
+    onFinishTurn: () -> Unit,
+    onInterrupt: () -> Unit,
+    onRetry: () -> Unit
+) {
+    BackHandler(onBack = onClose)
+    val responseScrollState = rememberScrollState()
+    var previousAssistantResponse by remember { mutableStateOf("") }
+    val preview = when {
+        state.phase == VoiceModePhase.Error -> state.errorMessage.orEmpty()
+        state.assistantText.isNotBlank() -> state.assistantText
+        else -> state.partialTranscript
+    }
+    val isAssistantResponse = state.assistantText.isNotBlank()
+
+    LaunchedEffect(preview, isAssistantResponse) {
+        if (isAssistantResponse && preview != previousAssistantResponse) {
+            val newResponse = previousAssistantResponse.isBlank()
+            val wasNearBottom = responseScrollState.maxValue - responseScrollState.value <= 96
+            if (newResponse) {
+                responseScrollState.scrollTo(0)
+            } else if (wasNearBottom) {
+                responseScrollState.scrollTo(responseScrollState.maxValue)
+            }
+        }
+        previousAssistantResponse = if (isAssistantResponse) preview else ""
+    }
+
+    Dialog(onDismissRequest = onClose, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(color = Color(0xFFF3F7F4), modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp, vertical = 12.dp)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        "Voice Mode",
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    IconButton(onClick = onClose) { Icon(Icons.Default.Close, contentDescription = "Exit Voice Mode") }
+                }
+
+                Surface(
+                    modifier = Modifier.fillMaxWidth().weight(1f),
+                    shape = RoundedCornerShape(18.dp),
+                    color = Color.White
+                ) {
+                    if (preview.isBlank()) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            Text(
+                                "Your conversation will appear here.",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color(0xFF667069)
+                            )
+                        }
+                    } else {
+                        SelectionContainer {
+                            Text(
+                                text = formatVoiceResponse(preview),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .verticalScroll(responseScrollState)
+                                    .padding(horizontal = 18.dp, vertical = 16.dp),
+                                style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 25.sp),
+                                color = Color(0xFF26312B)
+                            )
+                        }
+                    }
+                }
+
+                val activeColor = when (state.phase) {
+                    VoiceModePhase.Error -> Color(0xFFD32F2F)
+                    VoiceModePhase.AssistantSpeaking -> Color(0xFFDA8B3C)
+                    VoiceModePhase.UserSpeaking -> Color(0xFF2E7D5B)
+                    else -> Color(0xFF446F5D)
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(top = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Surface(
+                        modifier = Modifier.size(34.dp),
+                        shape = RoundedCornerShape(100.dp),
+                        color = activeColor.copy(alpha = 0.18f),
+                        border = BorderStroke(1.dp, activeColor)
+                    ) {
+                        Icon(
+                            Icons.Default.Mic,
+                            contentDescription = null,
+                            tint = activeColor,
+                            modifier = Modifier.padding(7.dp)
+                        )
+                    }
+                    HorizontalSpacer(10.dp)
+                    Text(
+                        text = when (state.phase) {
+                            VoiceModePhase.Initializing -> "Getting ready…"
+                            VoiceModePhase.Listening, VoiceModePhase.UserSpeaking -> "Listening…"
+                            VoiceModePhase.Transcribing -> "Got it…"
+                            VoiceModePhase.Thinking -> "Thinking…"
+                            VoiceModePhase.AssistantSpeaking -> "Speaking…"
+                            VoiceModePhase.Error -> "Try again"
+                            VoiceModePhase.Idle -> ""
+                        },
+                        modifier = Modifier.weight(1f),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                    when (state.phase) {
+                        VoiceModePhase.Listening, VoiceModePhase.UserSpeaking -> Button(onClick = onFinishTurn) {
+                            Icon(Icons.Default.Send, contentDescription = null)
+                            HorizontalSpacer(6.dp)
+                            Text("Send now")
+                        }
+                        VoiceModePhase.AssistantSpeaking -> Button(onClick = onInterrupt) {
+                            Icon(Icons.Default.Stop, contentDescription = null)
+                            HorizontalSpacer(6.dp)
+                            Text("Interrupt")
+                        }
+                        VoiceModePhase.Error -> Button(onClick = onRetry) {
+                            Icon(Icons.Default.Refresh, contentDescription = null)
+                            HorizontalSpacer(6.dp)
+                            Text("Try again")
+                        }
+                        else -> Unit
+                    }
+                }
+                TextButton(onClick = onClose, modifier = Modifier.align(Alignment.End)) {
+                    Text("End Voice Mode")
+                }
+            }
+        }
+    }
+}
+
+private fun formatVoiceResponse(text: String): AnnotatedString = buildAnnotatedString {
+    val lines = text.trim().lines()
+    lines.forEachIndexed { index, rawLine ->
+        val heading = rawLine.trimStart().startsWith("#")
+        val unheaded = if (heading) rawLine.trimStart().trimStart('#').trimStart() else rawLine
+        val line = when {
+            unheaded.startsWith("- ") -> "• ${unheaded.drop(2)}"
+            unheaded.startsWith("* ") -> "• ${unheaded.drop(2)}"
+            else -> unheaded
+        }
+        if (heading) {
+            withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { appendVoiceBoldSpans(line) }
+        } else {
+            appendVoiceBoldSpans(line)
+        }
+        if (index != lines.lastIndex) append('\n')
+    }
+}
+
+private fun AnnotatedString.Builder.appendVoiceBoldSpans(line: String) {
+    var cursor = 0
+    Regex("\\*\\*(.+?)\\*\\*").findAll(line).forEach { match ->
+        append(line.substring(cursor, match.range.first))
+        withStyle(SpanStyle(fontWeight = FontWeight.Bold)) { append(match.groupValues[1]) }
+        cursor = match.range.last + 1
+    }
+    append(line.substring(cursor))
 }
 
 @Composable

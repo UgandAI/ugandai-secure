@@ -38,6 +38,15 @@ interface UgandAIApi {
         @Field("username") username: String,
         @Field("password") password: String
     ): TokenResponse
+
+    @GET("conversations")
+    suspend fun getConversations(): List<ConversationSummaryResponse>
+
+    @POST("conversations")
+    suspend fun createConversation(): ConversationSummaryResponse
+
+    @GET("conversations/{id}/messages")
+    suspend fun getConversationMessages(@Path("id") id: Int): List<ConversationMessageResponse>
     
     @GET("profiles/farm")
     suspend fun getFarmProfiles(): List<FarmProfileResponse>
@@ -91,4 +100,20 @@ data class LogbookEntryResponse(
 @JsonClass(generateAdapter = true)
 data class RecommendationResponse(
     val recommendation: String
+)
+
+@JsonClass(generateAdapter = true)
+data class ConversationSummaryResponse(
+    val id: Int,
+    val title: String,
+    val created_at: String,
+    val updated_at: String
+)
+
+@JsonClass(generateAdapter = true)
+data class ConversationMessageResponse(
+    val id: Int,
+    val role: String,
+    val content: String,
+    val created_at: String
 )

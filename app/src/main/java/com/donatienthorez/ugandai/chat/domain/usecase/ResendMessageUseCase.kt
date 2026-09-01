@@ -14,6 +14,7 @@ class ResendMessageUseCase(
     suspend operator fun invoke(
         message: Message
     ) {
+        val conversationId = conversationRepository.selectedConversationOrCreate()
         conversationRepository.resendMessage(message)
         
         // Add an empty assistant message to stream into
@@ -25,7 +26,7 @@ class ResendMessageUseCase(
         conversationRepository.addMessage(assistantMessage)
 
         try {
-            openAIRepository.sendChatRequestStream(message.text).collect { event ->
+            openAIRepository.sendChatRequestStream(message.text, conversationId).collect { event ->
                 when (event) {
                     is ChatStreamEvent.Content -> conversationRepository.updateMessageText(assistantMessage.id, event.text)
                     is ChatStreamEvent.Citations -> conversationRepository.updateMessageCitations(assistantMessage.id, event.items)
@@ -33,6 +34,7 @@ class ResendMessageUseCase(
             }
             conversationRepository.setMessageStatusToSent(message.id)
             conversationRepository.setMessageStatusToSent(assistantMessage.id)
+            conversationRepository.refreshConversations()
         } catch (exception: Exception) {
             conversationRepository.setMessageStatusToError(message.id)
             conversationRepository.setMessageStatusToError(assistantMessage.id)

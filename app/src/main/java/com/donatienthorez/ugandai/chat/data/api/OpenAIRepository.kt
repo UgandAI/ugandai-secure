@@ -18,6 +18,9 @@ import okhttp3.sse.EventSources
 import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import android.util.Log
+import com.donatienthorez.ugandai.chat.voice.ServerVoiceTimings
+import com.donatienthorez.ugandai.chat.voice.VoiceLatencyTrace
 
 data class Citation(
     val documentId: Int,
@@ -33,7 +36,8 @@ data class VoiceChatResult(
     val content: String,
     val citations: List<Citation>,
     val audioBytes: ByteArray,
-    val audioFormat: String
+    val audioFormat: String,
+    val timings: ServerVoiceTimings = ServerVoiceTimings()
 )
 
 internal fun parseCitationsArray(json: JSONObject): List<Citation> {
@@ -73,16 +77,17 @@ class OpenAIRepository(private val context: Context) {
         .readTimeout(0, TimeUnit.MILLISECONDS) // SSE needs no timeout
         .build()
 
-    fun sendChatRequestStream(userInput: String): Flow<ChatStreamEvent> = callbackFlow {
+    fun sendChatRequestStream(userInput: String, conversationId: Int): Flow<ChatStreamEvent> = callbackFlow {
         val token = tokenStore.token()
         
         val jsonInput = JSONObject().apply {
             put("sender", "user")
             put("content", userInput)
+            put("conversation_id", conversationId)
         }.toString()
 
         val requestBuilder = Request.Builder()
-            .url("${NetworkConfig.BASE_URL}/chats")
+            .url("${NetworkConfig.BASE_URL}/conversations/$conversationId/messages")
             .post(jsonInput.toRequestBody("application/json; charset=utf-8".toMediaType()))
             .header("Accept", "text/event-stream")
 
@@ -131,17 +136,27 @@ class OpenAIRepository(private val context: Context) {
      * the same RAG chat pipeline as [sendChatRequestStream], and returns a synthesized reply.
      * Matches POST /voice/chat on the Web-Server backend.
      */
-    suspend fun sendVoiceChat(audioBytes: ByteArray, filename: String = "voice.m4a"): VoiceChatResult =
+    suspend fun sendVoiceChat(
+        audioBytes: ByteArray,
+        conversationId: Int,
+        filename: String = "voice.wav",
+        captureSessionId: Long = 0,
+        includeAudio: Boolean = true
+    ): VoiceChatResult =
         withContext(Dispatchers.IO) {
             require(audioBytes.isNotEmpty()) { "Voice recording is empty" }
             val token = tokenStore.token()
 
+            val mediaType = if (filename.endsWith(".wav", ignoreCase = true)) "audio/wav" else "audio/mp4"
             val multipartBody = MultipartBody.Builder()
                 .setType(MultipartBody.FORM)
                 .addFormDataPart(
                     "audio", filename,
-                    audioBytes.toRequestBody("audio/mp4".toMediaType())
+                    audioBytes.toRequestBody(mediaType.toMediaType())
                 )
+                .addFormDataPart("conversation_id", conversationId.toString())
+                .addFormDataPart("voice_session_id", captureSessionId.toString())
+                .addFormDataPart("include_audio", includeAudio.toString())
                 .build()
 
             val requestBuilder = Request.Builder()
@@ -152,24 +167,42 @@ class OpenAIRepository(private val context: Context) {
                 requestBuilder.header("Authorization", "Bearer $token")
             }
 
+            VoiceLatencyTrace.mark(captureSessionId, "http_upload_started")
             client.newCall(requestBuilder.build()).execute().use { response ->
+                VoiceLatencyTrace.mark(captureSessionId, "http_response_received")
                 val bodyText = response.body?.string()
+                Log.i("UgandAIVoiceTrace", "VOICE session=$captureSessionId HTTP_RESPONSE status=${response.code} file=$filename body=${bodyText?.take(1000)}")
                 if (!response.isSuccessful || bodyText == null) {
+                    val serverDetail = bodyText?.let {
+                        runCatching { JSONObject(it).optString("detail").takeIf(String::isNotBlank) }.getOrNull()
+                    }
                     throw IOException(when (response.code) {
                         401 -> "Authentication expired"
                         403 -> "Voice chat access forbidden"
                         413 -> "Voice recording is too large"
-                        415, 422 -> "Voice recording is invalid"
+                        415, 422 -> serverDetail ?: "Voice recording is invalid"
                         else -> "Voice chat failed (${response.code})"
                     })
                 }
                 val json = JSONObject(bodyText)
+                val timingJson = json.optJSONObject("timings")
+                val timings = ServerVoiceTimings(
+                    backendReceivedToSttStartMs = timingJson?.optLong("backend_received_to_stt_start_ms") ?: 0,
+                    sttMs = timingJson?.optLong("stt_ms") ?: 0,
+                    llmFirstTokenMs = if (timingJson?.has("llm_first_token_ms") == true && !timingJson.isNull("llm_first_token_ms")) timingJson.optLong("llm_first_token_ms") else null,
+                    llmCompletionMs = timingJson?.optLong("llm_completion_ms") ?: 0,
+                    ttsFirstAudioMs = if (timingJson?.has("tts_first_audio_ms") == true && !timingJson.isNull("tts_first_audio_ms")) timingJson.optLong("tts_first_audio_ms") else null,
+                    ttsCompletionMs = timingJson?.optLong("tts_completion_ms") ?: 0,
+                    backendTotalMs = timingJson?.optLong("backend_total_ms") ?: 0
+                )
+                VoiceLatencyTrace.attachServer(captureSessionId, timings)
                 VoiceChatResult(
                     transcript = json.getString("transcript"),
                     content = json.getString("content"),
                     citations = parseCitationsArray(json),
                     audioBytes = android.util.Base64.decode(json.getString("audio_base64"), android.util.Base64.DEFAULT),
-                    audioFormat = json.optString("audio_format", "mp3")
+                    audioFormat = json.optString("audio_format", "mp3"),
+                    timings = timings
                 )
             }
         }
