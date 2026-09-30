@@ -484,50 +484,56 @@ fun MessageList(
     LazyColumn(state = listState) {
         items(messagesList) { message ->
 
-            Row(modifier = Modifier.fillMaxWidth()) {
+            val isPendingAssistantReply = !message.isFromUser &&
+                message.messageStatus == MessageStatus.Sending &&
+                message.text.isBlank()
 
-                if (message.isFromUser) {
-                    HorizontalSpacer(16.dp)
-                    Box(modifier = Modifier.weight(1f))
-                }
+            if (!isPendingAssistantReply) {
+                Row(modifier = Modifier.fillMaxWidth()) {
 
-                SelectionContainer {
-                    Surface(
-                        modifier = Modifier.weight(2f, fill = false),
-                        shape = RoundedCornerShape(12.dp),
-                        color = when {
-                            message.messageStatus == MessageStatus.Error ->
-                                Color(0xFFFFCDD2)
-                            message.isFromUser ->
-                                Color(0xFF446F5D)
-                            else ->
-                                Color.White
-                        },
-                        shadowElevation = 4.dp,
-                        border = if (!message.isFromUser && message.messageStatus != MessageStatus.Error) {
-                            androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
-                        } else null
-                    ) {
-                        Text(
-                            text = removeMarkdownMarkers(message.text),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (message.isFromUser) Color.White else Color(0xFF1E1E1E),
-                            modifier = Modifier
-                                .clickable(enabled = message.messageStatus == MessageStatus.Error) {
-                                    onResendMessage(message)
-                                }
-                                .padding(12.dp)
-                        )
+                    if (message.isFromUser) {
+                        HorizontalSpacer(16.dp)
+                        Box(modifier = Modifier.weight(1f))
                     }
-                }
 
-                if (!message.isFromUser) {
-                    HorizontalSpacer(16.dp)
-                    Box(modifier = Modifier.weight(1f))
+                    SelectionContainer {
+                        Surface(
+                            modifier = Modifier.weight(2f, fill = false),
+                            shape = RoundedCornerShape(12.dp),
+                            color = when {
+                                message.messageStatus == MessageStatus.Error ->
+                                    Color(0xFFFFCDD2)
+                                message.isFromUser ->
+                                    Color(0xFF446F5D)
+                                else ->
+                                    Color.White
+                            },
+                            shadowElevation = 4.dp,
+                            border = if (!message.isFromUser && message.messageStatus != MessageStatus.Error) {
+                                androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFE0E0E0))
+                            } else null
+                        ) {
+                            Text(
+                                text = removeMarkdownMarkers(message.text),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = if (message.isFromUser) Color.White else Color(0xFF1E1E1E),
+                                modifier = Modifier
+                                    .clickable(enabled = message.messageStatus == MessageStatus.Error) {
+                                        onResendMessage(message)
+                                    }
+                                    .padding(12.dp)
+                            )
+                        }
+                    }
+
+                    if (!message.isFromUser) {
+                        HorizontalSpacer(16.dp)
+                        Box(modifier = Modifier.weight(1f))
+                    }
                 }
             }
 
-            if (message.messageStatus == MessageStatus.Sending) {
+            if (isPendingAssistantReply) {
                 Text(
                     text = stringResource(R.string.chat_message_loading),
                     style = MaterialTheme.typography.bodySmall,
