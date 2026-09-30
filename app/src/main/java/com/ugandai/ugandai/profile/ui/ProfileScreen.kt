@@ -1,13 +1,28 @@
 @file:OptIn(ExperimentalMaterial3Api::class)
 package com.ugandai.ugandai.profile.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Eco
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.filled.Straighten
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.ugandai.ugandai.auth.ui.AuthField
+import com.ugandai.ugandai.auth.ui.BrandGreen
+import com.ugandai.ugandai.auth.ui.ScreenBackground
+import com.ugandai.ugandai.auth.ui.SubtitleColor
+import com.ugandai.ugandai.auth.ui.TitleColor
 
 @Composable
 fun ProfileScreen(
@@ -30,60 +45,78 @@ fun ProfileScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(24.dp),
+            .background(ScreenBackground)
+            .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         Text(
             text = "Setup Farm Profile",
-            style = MaterialTheme.typography.headlineMedium
+            fontSize = 32.sp,
+            fontWeight = FontWeight.Bold,
+            color = TitleColor
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(8.dp))
+        Text(
+            text = "Tell us about your farm to get started",
+            fontSize = 16.sp,
+            color = SubtitleColor
+        )
+        Spacer(modifier = Modifier.height(40.dp))
 
-        OutlinedTextField(
+        AuthField(
             value = farmName,
             onValueChange = { farmName = it },
-            label = { Text("Farm Name") },
-            modifier = Modifier.fillMaxWidth()
+            placeholder = "Farm Name",
+            icon = Icons.Default.Home
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedTextField(
+        AuthField(
             value = district,
             onValueChange = { district = it },
-            label = { Text("District") },
-            modifier = Modifier.fillMaxWidth()
+            placeholder = "District",
+            icon = Icons.Default.LocationOn
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedTextField(
+        AuthField(
             value = crops,
             onValueChange = { crops = it },
-            label = { Text("Crops (comma separated)") },
-            modifier = Modifier.fillMaxWidth()
+            placeholder = "Crops (comma separated)",
+            icon = Icons.Default.Eco
         )
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
-        OutlinedTextField(
+        AuthField(
             value = farmSizeStr,
             onValueChange = { farmSizeStr = it },
-            label = { Text("Farm Size (acres)") },
-            modifier = Modifier.fillMaxWidth()
+            placeholder = "Farm Size (acres)",
+            icon = Icons.Default.Straighten
         )
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(32.dp))
 
         Button(
             onClick = {
                 val size = farmSizeStr.toDoubleOrNull()
                 viewModel.saveFarmProfile(farmName, district, crops, size)
             },
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(60.dp),
+            shape = RoundedCornerShape(30.dp),
+            colors = ButtonDefaults.buttonColors(containerColor = BrandGreen),
             enabled = profileState !is ProfileState.Loading
         ) {
             if (profileState is ProfileState.Loading) {
-                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                CircularProgressIndicator(modifier = Modifier.size(24.dp), color = Color.White)
             } else {
-                Text("SAVE PROFILE")
+                Text(
+                    text = "SAVE PROFILE",
+                    color = Color.White,
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold
+                )
             }
         }
 

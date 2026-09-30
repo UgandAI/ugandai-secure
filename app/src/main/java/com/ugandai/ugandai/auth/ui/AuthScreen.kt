@@ -21,11 +21,11 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.ugandai.ugandai.R
 
-private val BrandGreen = Color(0xFF446F5D)
-private val ScreenBackground = Color(0xFFF5F5F5)
-private val FieldBorder = Color(0xFFCCCCCC)
-private val TitleColor = Color(0xFF1E1E1E)
-private val SubtitleColor = Color(0xFF666666)
+val BrandGreen = Color(0xFF446F5D)
+val ScreenBackground = Color(0xFFF5F5F5)
+val FieldBorder = Color(0xFFCCCCCC)
+val TitleColor = Color(0xFF1E1E1E)
+val SubtitleColor = Color(0xFF666666)
 
 @Composable
 fun AuthScreen(
@@ -166,11 +166,12 @@ fun AuthScreen(
 }
 
 @Composable
-private fun AuthField(
+fun AuthField(
     value: String,
     onValueChange: (String) -> Unit,
     placeholder: String,
-    iconRes: Int,
+    iconRes: Int? = null,
+    icon: androidx.compose.ui.graphics.vector.ImageVector? = null,
     keyboardType: KeyboardType = KeyboardType.Text,
     isPassword: Boolean = false
 ) {
@@ -179,11 +180,10 @@ private fun AuthField(
         onValueChange = onValueChange,
         placeholder = { Text(placeholder, color = Color(0xFF999999)) },
         leadingIcon = {
-            Icon(
-                painter = painterResource(iconRes),
-                contentDescription = null,
-                tint = BrandGreen
-            )
+            when {
+                icon != null -> Icon(imageVector = icon, contentDescription = null, tint = BrandGreen)
+                iconRes != null -> Icon(painter = painterResource(iconRes), contentDescription = null, tint = BrandGreen)
+            }
         },
         singleLine = true,
         visualTransformation = if (isPassword) PasswordVisualTransformation() else androidx.compose.ui.text.input.VisualTransformation.None,
