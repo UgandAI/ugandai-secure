@@ -446,7 +446,7 @@ private fun VoiceModeDialog(
 }
 
 private fun formatVoiceResponse(text: String): AnnotatedString = buildAnnotatedString {
-    val lines = text.trim().lines()
+    val lines = removeLatexMarkers(text).lines()
     lines.forEachIndexed { index, rawLine ->
         val heading = rawLine.trimStart().startsWith("#")
         val unheaded = if (heading) rawLine.trimStart().trimStart('#').trimStart() else rawLine
@@ -606,7 +606,33 @@ fun removeMarkdownMarkers(text: String): String {
     val boldRegex = "\\*\\*(.*?)\\*\\*".toRegex()
     val italicRegex = "\\*(.*?)\\*".toRegex()
 
-    return text
+    return removeLatexMarkers(text)
         .replace(boldRegex, "$1")
         .replace(italicRegex, "$1")
+}
+
+/**
+ * The chat bubble renders plain text, not LaTeX, but the model sometimes replies with
+ * math markup anyway (e.g. `\[25,000 \text{ plants/acre}\]`). Strip the delimiters/commands
+ * down to readable plain text instead of showing raw LaTeX source.
+ */
+fun removeLatexMarkers(text: String): String {
+    val textCommandRegex = "\\\\text\\{(.*?)\\}".toRegex()
+    val fracRegex = "\\\\frac\\{(.*?)\\}\\{(.*?)\\}".toRegex()
+
+    return text
+        .replace(fracRegex, "$1/$2")
+        .replace(textCommandRegex, "$1")
+        .replace("\\times", "×")
+        .replace("\\div", "÷")
+        .replace("\\cdot", "·")
+        .replace("\\approx", "≈")
+        .replace("\\[", "")
+        .replace("\\]", "")
+        .replace("\\(", "")
+        .replace("\\)", "")
+        .lines()
+        .joinToString("\n") { it.trimEnd() }
+        .replace(Regex("\n{3,}"), "\n\n")
+        .trim()
 }
