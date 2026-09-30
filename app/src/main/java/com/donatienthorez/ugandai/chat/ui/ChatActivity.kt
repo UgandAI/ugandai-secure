@@ -30,10 +30,6 @@ class ChatActivity : ComponentActivity() {
                             viewModel.sendMessage(prompt)
                         },
 
-                        onSendVoiceMessage = { audioFile ->
-                            viewModel.sendVoiceMessage(audioFile)
-                        },
-
                         onResendMessage = viewModel::resendMessage,
 
                         // ✅ FIXED EXTRA KEYS HERE
@@ -56,10 +52,20 @@ class ChatActivity : ComponentActivity() {
 
                         onNavigateToLogBook = {
                             startActivity(Intent(this, LogBookActivity::class.java))
-                        }
+                        },
+                        onNewConversation = viewModel::newConversation,
+                        onSelectConversation = viewModel::selectConversation,
+                        onEnterVoiceMode = viewModel::enterVoiceMode,
+                        onExitVoiceMode = viewModel::exitVoiceMode,
+                        onFinishVoiceTurn = viewModel::finishVoiceTurn,
+                        onInterruptVoiceMode = viewModel::interruptAssistant,
+                        onRetryVoiceMode = viewModel::retryVoiceMode
                     ),
                     conversation = viewModel.conversation,
-                    isSendingMessage = viewModel.isSendingMessage
+                    isSendingMessage = viewModel.isSendingMessage,
+                    conversationSummaries = viewModel.conversationSummaries,
+                    selectedConversationId = viewModel.selectedConversationId,
+                    voiceModeState = viewModel.voiceModeState
                 )
             }
         }
@@ -67,5 +73,10 @@ class ChatActivity : ComponentActivity() {
         presetPrompt?.let {
             viewModel.sendMessage(it)
         }
+    }
+
+    override fun onStop() {
+        if (!isChangingConfigurations) viewModel.exitVoiceMode()
+        super.onStop()
     }
 }

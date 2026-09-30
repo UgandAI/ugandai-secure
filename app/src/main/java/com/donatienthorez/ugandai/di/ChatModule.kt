@@ -5,6 +5,10 @@ import com.ugandai.ugandai.database.AppDatabase
 import com.ugandai.ugandai.chat.data.ConversationRepository
 import com.donatienthorez.ugandai.chat.data.api.OpenAIRepository
 import com.donatienthorez.ugandai.chat.data.audio.VoicePlayer
+import com.donatienthorez.ugandai.chat.voice.AndroidAudioTurnCaptureService
+import com.donatienthorez.ugandai.chat.voice.AndroidVoiceSpeechService
+import com.donatienthorez.ugandai.chat.voice.AudioTurnCaptureService
+import com.donatienthorez.ugandai.chat.voice.VoiceSpeechService
 import com.donatienthorez.ugandai.chat.domain.usecase.ObserveMessagesUseCase
 import com.ugandai.ugandai.chat.domain.usecase.ResendMessageUseCase
 import com.ugandai.ugandai.chat.domain.usecase.SendChatRequestUseCase
@@ -31,12 +35,14 @@ val chatModule = module {
     single { get<AppDatabase>().messageDao() }
 
     viewModel {
-        ChatViewModel(get(), get(), get(), get())
+        ChatViewModel(get(), get(), get(), get(), get(), get(), get())
     }
 
     // Provide OpenAIRepository with context
     single { OpenAIRepository(context = androidContext()) }
     single { VoicePlayer(context = androidContext()) }
+    factory<AudioTurnCaptureService> { AndroidAudioTurnCaptureService(androidContext()) }
+    factory<VoiceSpeechService> { AndroidVoiceSpeechService(androidContext()) }
 
     single { ConversationRepository(context = androidContext(), messageDao = get()) }
 

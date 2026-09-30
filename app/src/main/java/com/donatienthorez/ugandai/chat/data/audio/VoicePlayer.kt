@@ -9,27 +9,41 @@ import java.io.FileOutputStream
 class VoicePlayer(private val context: Context) {
 
     private var mediaPlayer: MediaPlayer? = null
+    private var playbackFile: File? = null
 
     fun play(audioBytes: ByteArray, audioFormat: String = "mp3", onCompletion: () -> Unit = {}) {
         stop()
         val file = File(context.cacheDir, "voice_reply_${System.currentTimeMillis()}.$audioFormat")
-        FileOutputStream(file).use { it.write(audioBytes) }
-        mediaPlayer = MediaPlayer().apply {
-            setDataSource(file.absolutePath)
-            setOnCompletionListener {
-                it.release()
-                mediaPlayer = null
-                file.delete()
-                onCompletion()
+        require(audioBytes.isNotEmpty()) { "Audio response is empty" }
+        try {
+            FileOutputStream(file).use { it.write(audioBytes) }
+            playbackFile = file
+            mediaPlayer = MediaPlayer().apply {
+                setDataSource(file.absolutePath)
+                setOnCompletionListener {
+                    it.release()
+                    mediaPlayer = null
+                    playbackFile?.delete()
+                    playbackFile = null
+                    onCompletion()
+                }
+                setOnErrorListener { player, _, _ ->
+                    player.release()
+                    mediaPlayer = null
+                    playbackFile?.delete()
+                    playbackFile = null
+                    true
+                }
+                prepare()
+                start()
             }
-            setOnErrorListener { player, _, _ ->
-                player.release()
-                mediaPlayer = null
-                file.delete()
-                true
-            }
-            prepare()
-            start()
+        } catch (error: Exception) {
+            mediaPlayer?.release()
+            mediaPlayer = null
+            playbackFile?.delete()
+            playbackFile = null
+            file.delete()
+            throw error
         }
     }
 
@@ -39,5 +53,7 @@ class VoicePlayer(private val context: Context) {
             release()
         }
         mediaPlayer = null
+        playbackFile?.delete()
+        playbackFile = null
     }
 }
